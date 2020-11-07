@@ -267,7 +267,7 @@ getPermut(dat$NumWeigh, dat$Treatment, P = 10000)
 
 ```{r}
 numFile <- 1
-rslts <- getMediationTable(dat, myBoot = TRUE, numSims = 10000, confLvl = 0.90) 
+rslts <- getMediationTable(dat, numFile, myBoot = TRUE, numSims = 10000, confLvl = 0.90) 
 table1 <- rslts$med.tbl
 table1
 ```
@@ -277,13 +277,28 @@ table1
 
 ```{r}
 rslts$med.tbl %>%
-  kable("html") %>%
-  row_spec(c(1,2), bold = T, color = "blue") %>% 
-  row_spec(c(3,4), bold = T, color = "red") %>% 
-  row_spec(c(5), bold = T, color = "green") %>% 
-  column_spec(c(2), bold = T, color = "orange") %>% 
+  kable("html") %>% 
+  column_spec(c(1), bold = T, color = "black") %>%
+  column_spec(c(2, 5, 8), bold = T, color = "steelblue") %>%
+  column_spec(c(3, 4, 6, 7, 9, 10), bold = T, color = "sienna") %>%
+  column_spec(c(11), bold = T, color = "black")%>%
   as.character() %>%
   display_html()
+```
+
+```{r}
+kable(rslts$med.tbl, booktabs = T) %>%
+  as.character() %>%
+  display_html()
+```
+
+```{r}
+rslts$med.tbl %>%
+  kable("html") %>% 
+  column_spec(c(1), bold = T, color = "black") %>%
+  column_spec(c(2, 5, 8), bold = T, color = "steelblue") %>%
+  column_spec(c(3, 4, 6, 7, 9, 10), bold = T, color = "sienna") %>%
+  column_spec(c(11), bold = T, color = "black")
 ```
 
 ---
