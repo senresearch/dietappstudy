@@ -325,12 +325,9 @@ options(repr.plot.width = 10, repr.plot.height = 7)
 plot(sensApp.out,  ylim = c(-0.18, 0.18), main  =  expression(paste("App-usage ACME(", rho, ")")))
 ```
 
-The above figure shows the estimated true values of ACMEs as functions of the sensitivity parameter $\rho$, which
-represents the correlation between the error terms in the mediator and the outcome models. The thick lines
-and gray bands represent the point estimates of the ACME and their 90% confidence intervals, respectively.   
-According to this analysis, the ACME is estimated to be negative when the correlation between the error terms in the mediator
-and the outcome models is larger than 0.36, and the ACME is statistically indistinguishable from
-zero at the 90% level when the parameter $\rho$ is >0.26.
+The above figure shows the estimated true values of ACMEs as a function of the sensitivity parameter $\rho$. The parameter $\rho$
+expresses the correlation between the error terms in the mediator and the outcome models. The solid thick line and its shaded area represent the ACME's point estimates and their 90% confidence intervals, respectively.    
+According to this analysis, the ACME is estimated to be negative when  $\rho$ is larger than 0.36, and the ACME is statistically indistinguishable from zero at the 90% level when the parameter $\rho$ is larger than 0.26.
 
 
 #### Sensitivity with respect to proportion of variance explained
@@ -361,12 +358,9 @@ summary(sensNumW.out)
 plot(sensNumW.out,  ylim = c(-0.18, 0.18), main  =  expression(paste("Self-weight ACME(", rho, ")")))
 ```
 
-The above figure shows the estimated true values of ACMEs as functions of the sensitivity parameter $\rho$, which
-represents the correlation between the error terms in the mediator and the outcome models. The thick lines
-and gray bands represent the point estimates of the ACME and their 90% confidence intervals, respectively.   
-According to this analysis, the ACME is estimated to be negative when the correlation between the error terms in the mediator
-and the outcome models is larger than 0.39, and the ACME is statistically indistinguishable from
-zero at the 90% level when the parameter $\rho$ is >0.30.
+The above figure shows the estimated true values of ACMEs as a function of the sensitivity parameter $\rho$. The parameter $\rho$
+expresses the correlation between the error terms in the mediator and the outcome models. The solid thick line and its shaded area represent the ACME's point estimates and their 90% confidence intervals, respectively.    
+According to this analysis, the ACME is estimated to be negative when  $\rho$ is larger than 0.39, and the ACME is statistically indistinguishable from zero at the 90% level when the parameter $\rho$ is larger than 0.30.
 
 
 #### Sensitivity with respect to proportion of variance explained

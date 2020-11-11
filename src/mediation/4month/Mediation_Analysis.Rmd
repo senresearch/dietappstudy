@@ -24,7 +24,7 @@ jupyter:
 
 ```{r}
 # Library
-spsm <- suppressPackageStartupMessages # It's a library, so silence please!
+spsm <- suppressPackageStartupMessages 
 spsm(library(dplyr))
 spsm(library(tidyverse))
 spsm(library(FactoMineR))
@@ -65,6 +65,10 @@ dat <- getData(pathFile, numFile)
 
 ```{r}
 names(dat)
+```
+
+```{r}
+t.test(Age~Treatment, data = dat)
 ```
 
 ### Data description
@@ -177,7 +181,7 @@ dat <- na.omit(dat)
 
 We will consider the following assumptions:
 
-* App usage and Number of self-weiging are casually unrelated mediators.
+* App usage and Number of self-weighing are casually unrelated mediators.
 * Observed confounder is : age. 
 
 
@@ -268,8 +272,6 @@ getPermut(dat$NumWeigh, dat$Treatment, P = 10000)
 ```{r}
 numFile <- 1
 rslts <- getMediationTable(dat, numFile, myBoot = TRUE, numSims = 10000, confLvl = 0.90) 
-table1 <- rslts$med.tbl
-table1
 ```
 
 ### **Mediation Results** 
@@ -286,26 +288,13 @@ rslts$med.tbl %>%
   display_html()
 ```
 
-```{r}
-kable(rslts$med.tbl, booktabs = T) %>%
-  as.character() %>%
-  display_html()
-```
-
-```{r}
-rslts$med.tbl %>%
-  kable("html") %>% 
-  column_spec(c(1), bold = T, color = "black") %>%
-  column_spec(c(2, 5, 8), bold = T, color = "steelblue") %>%
-  column_spec(c(3, 4, 6, 7, 9, 10), bold = T, color = "sienna") %>%
-  column_spec(c(11), bold = T, color = "black")
-```
-
 ---
 ## Sensitivity Analysis
 
 ```{r}
+# Sensitivity for the app-usage
 sensApp.out <- medsens(rslts$med.rslts$medApp.out, rho.by = 0.01, effect.type = "indirect", sims = 10000)
+# Sensitivity for the self-weight
 sensNumW.out <- medsens(rslts$med.rslts$medNumW.out, rho.by = 0.01, effect.type = "indirect", sims = 10000)
 ```
 
@@ -325,12 +314,9 @@ options(repr.plot.width = 10, repr.plot.height = 7)
 plot(sensApp.out,  ylim = c(-0.18, 0.18), main  =  expression(paste("App-usage ACME(", rho, ")")))
 ```
 
-The above figure shows the estimated true values of ACMEs as functions of the sensitivity parameter $\rho$, which
-represents the correlation between the error terms in the mediator and the outcome models. The thick lines
-and gray bands represent the point estimates of the ACME and their 90% confidence intervals, respectively.   
-According to this analysis, the ACME is estimated to be negative when the correlation between the error terms in the mediator
-and the outcome models is larger than 0.34, and the ACME is statistically indistinguishable from
-zero at the 90% level when the parameter $\rho$ is >0.23.
+The above figure shows the estimated true values of ACMEs as a function of the sensitivity parameter $\rho$. The parameter $\rho$
+expresses the correlation between the error terms in the mediator and the outcome models. The solid thick line and its shaded area represent the ACME's point estimates and their 90% confidence intervals, respectively.    
+According to this analysis, the ACME is estimated to be negative when  $\rho$ is larger than 0.34, and the ACME is statistically indistinguishable from zero at the 90% level when the parameter $\rho$ is larger than 0.23.
 
 
 #### Sensitivity with respect to proportion of variance explained
@@ -343,10 +329,6 @@ plot(sensApp.out, sens.par = "R2", r.type = "total", sign.prod = "positive",
 In the sensitivity analyses plot above, the ACME estimates are plotted against $\tilde{R}^2_Y \tilde{R}^2_M$, the proportions of the total variance in the outcome and mediator variables, respectively, that would be explained by a hypothetical unobserved pretreatment confounder.
 In terms of the coefficient of determination parameters, the product of $\tilde{R}^2_M$ and $\tilde{R}^2_Y$ must be at least as large
 as 0.0518, implying that an unobserved pretreatment confounder must explain 20% of the variation in the participants’ app-usage and 25.6% of the variation in their weight loss, for example.
-
-We find that the true ACME changes sign if the product of the total variance in weight loss explained by an unmeasured confounder, $\tilde{R}^2_Y$,  times the total variance in app usage explained by an unmeasured confounder, $\tilde{R}^2_M$, is greater than 0.0518, and the confounder affects both mediator and outcome in the same direction.   
-The positive ACME in the analysis is robust to confounding because the unobserved confounder (UC) when the latter explains less than about 19.18% of the variance in the mediator and outcome. In other words, UC would explain only 19.18% of the variance in the mediator and out come in the case where the mediated effect is vanished.
-
 
 
 ### Self-weight
@@ -364,12 +346,9 @@ summary(sensNumW.out)
 plot(sensNumW.out,  ylim = c(-0.18, 0.18), main  =  expression(paste("Self-weight ACME(", rho, ")")))
 ```
 
-The above figure shows the estimated true values of ACMEs as functions of the sensitivity parameter $\rho$, which
-represents the correlation between the error terms in the mediator and the outcome models. The thick lines
-and gray bands represent the point estimates of the ACME and their 90% confidence intervals, respectively.   
-According to this analysis, the ACME is estimated to be negative when the correlation between the error terms in the mediator
-and the outcome models is larger than 0.38, and the ACME is statistically indistinguishable from
-zero at the 90% level when the parameter $\rho$ is >0.27.
+The above figure shows the estimated true values of ACMEs as a function of the sensitivity parameter $\rho$. The parameter $\rho$
+expresses the correlation between the error terms in the mediator and the outcome models. The solid thick line and its shaded area represent the ACME's point estimates and their 90% confidence intervals, respectively.    
+According to this analysis, the ACME is estimated to be negative when  $\rho$ is larger than 0.38, and the ACME is statistically indistinguishable from zero at the 90% level when the parameter $\rho$ is larger than 0.27.
 
 
 ### Sensitivity with respect to proportion of variance explained
@@ -388,5 +367,4 @@ as 0.0718, implying that an unobserved pretreatment confounder must explain 20% 
 
 
 Overall, the results suggest that under the assumption of independence between mechanisms, the causal mediation effects are positive and
-moderately statistically significant in all of the three studies, and the estimates are fairly robust to the
-possible unobserved pretreatment mediator–outcome confounding to varying degrees.
+moderately statistically significant, and the estimates are fairly robust to the possible unobserved pretreatment mediator–outcome confounding to varying degrees.

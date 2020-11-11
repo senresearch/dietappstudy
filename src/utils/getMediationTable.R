@@ -194,7 +194,7 @@ getMediationTable <- function(dat, numFile, myBoot = FALSE,
                                 sens4Month.out = sens4Month.out)           # 3 M3
     }
     }
-    # !!!!!!!!!!!!Need to be added to results!!!!!!!!!!!!!!!!!!!!!!!
+   
     
     ###########################
     # Mediation Results Table #

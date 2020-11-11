@@ -1,0 +1,745 @@
+---
+title: "Fit Blue Presentation"
+output:   
+  html_document:
+    fig_width: 10
+    fig_height: 8
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    number_sections: true
+    smooth_scroll: true
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+#Read libraries
+
+library(knitr)
+library(tidyverse)
+library(reshape2)
+library(lubridate)
+library(kableExtra)
+library(gridExtra)
+library(ggrepel)
+library(DiagrammeR)
+library(caret)
+library(FactoMineR)
+library(factoextra)
+library(fastDummies)
+library(corrplot)
+library(pROC)
+library(ggthemes)
+
+#Read external functions
+source("../utils/demoFunc.R")
+source("../utils/analysisFunc.R")
+
+#Read File
+
+# Get input folder and data file
+dirInput <- "../../data/"
+inputFile <- paste(dirInput, "ProcessedData_2019_04_03.txt", sep = "")
+# Read input file 
+processed.data <- read.table(file = inputFile, header = TRUE, quote = "\"", sep = "\t", fill = TRUE)
+
+
+
+#Take out first column with just row number
+processed.data <- processed.data %>%
+  select(-X)
+
+#Put into r date form
+processed.data$VST_DATE_Base <- mdy(processed.data$VST_DATE_Base)
+processed.data$loseit_date <- mdy(processed.data$loseit_date)
+
+#Make Success a factor
+processed.data$Success <- factor(processed.data$Success)
+
+#Make Treatment a factor and change Treatment names
+processed.data$tx <- factor(processed.data$tx)
+levels(processed.data$tx) <- c("Counselor-Initiated", "Self-Initiated")
+
+# Get input files for Summary Weeks
+# Get input folder and data file
+inputFile <- c("../../data/SummaryWeeks1to4.csv",
+               "../../data/SummaryWeeks1to8.csv")
+
+# Read input file 
+SummaryWeeks1to4.data <- read.csv(file = inputFile[1], header = TRUE)
+SummaryWeeks1to8.data <- read.csv(file = inputFile[2], header = TRUE)
+
+ 
+###################################################################################
+# temp: change  weightloss such positive is weight loss and negative is weight gain
+# Assign 0 for controlled and 1 for treated.
+SummaryWeeks1to8.data$Treatment[SummaryWeeks1to8.data$Treatment == 2] <- 0
+SummaryWeeks1to4.data$Treatment[SummaryWeeks1to4.data$Treatment == 2] <- 0
+# # Change sign for weight loss so that: positive is a loss and negative is a gain.
+# SummaryWeeks1to8.data$WeightLoss4Month <- -SummaryWeeks1to8.data$WeightLoss4Month
+# SummaryWeeks1to8.data$WeightLoss12Month <- -SummaryWeeks1to8.data$WeightLoss12Month
+
+# Change sign for intake calorie so that: intake calories are negative and burnt calories are positive
+SummaryWeeks1to8.data$AvgTotalCal <- -SummaryWeeks1to8.data$AvgTotalCal
+SummaryWeeks1to8.data$AvgBreakfastCal <- -SummaryWeeks1to8.data$AvgBreakfastCal
+SummaryWeeks1to8.data$AvgLunchCal <- -SummaryWeeks1to8.data$AvgLunchCal
+SummaryWeeks1to8.data$AvgDinnerCal <- -SummaryWeeks1to8.data$AvgDinnerCal
+SummaryWeeks1to8.data$AvgSnackCal <- -SummaryWeeks1to8.data$AvgSnackCal
+
+# Change sign for weight loss so that: positive is a loss and negative is a gain.
+SummaryWeeks1to4.data$WeightLoss4Month <- SummaryWeeks1to4.data$WeightLoss4Month
+SummaryWeeks1to4.data$WeightLoss12Month <- SummaryWeeks1to4.data$WeightLoss12Month
+
+# Change sign for intake calorie so that: intake calories are negative and burnt calories are positive
+SummaryWeeks1to4.data$AvgTotalCal <- -SummaryWeeks1to4.data$AvgTotalCal
+SummaryWeeks1to4.data$AvgBreakfastCal <- -SummaryWeeks1to4.data$AvgBreakfastCal
+SummaryWeeks1to4.data$AvgLunchCal <- -SummaryWeeks1to4.data$AvgLunchCal
+SummaryWeeks1to4.data$AvgDinnerCal <- -SummaryWeeks1to4.data$AvgDinnerCal
+SummaryWeeks1to4.data$AvgSnackCal <- -SummaryWeeks1to4.data$AvgSnackCal
+
+
+# temp
+###################################################################################
+
+
+
+
+#Take out first column with X
+SummaryWeeks1to4.data$X <- NULL
+SummaryWeeks1to8.data$X <- NULL
+```
+
+# Abstract
+
+Participants of the Fit Blue study, a weight loss study implemented at the Lackland Air Force Base, were asked to record daily diet and activity on the Lose It! application.  Our primary objectives were to find predictors of weight loss based on the first few weeks, and to determine if the app data enhanced weight loss predictions.  Since the app provides many variables, we performed dimension reduction using principal components analysis.  This was followed by predictive modeling using linear regression and random forests. The models were evaluated by cross-validation using the proportion of variance explained (R-Squared) and the C-statistic.  Linear regression using information from the app in addition to demographic variables had an R-Squared of 20% and a C-statistic of 68% for 4-month weight loss; this improved upon models using demographic variables alone. Unfortunately, app data from the first two months supplemented with demographic variables had virtually no predictive power for 12-month weight loss.  Our study confirms the known benefits and challenges of app-based health monitoring.  The wealth of information from the app presents many statistical challenges.  It is possible that additional data such as nutrients consumed, daily calorie budget, and food descriptions could potentially give more insight to 12 month weight loss. 
+
+
+# Descriptive Analysis
+
+## Demographics
+
+All particpants in the study were on active duty in the military and had to have at least one year left at the Air Force base so that they would likely be available in person for the 4 and 12 month follow-ups. The requirements for participation were as follows: 18 years or older, BMI greater or equal to 25.0, access to computer and email, and cleared to participate by a healthcare provider.
+      
+
+There were 212 total participants in this study. Only 179 records were successfully pulled from the Lose It! database. Of the remaining 33 records, 11 likely previously had an account with Lose It! and their previously existing accounts were never linked to the study account. For the other 22 inaccessible records, we hypothesize either the participants themselves or the staff disconnected them from the study account early.
+
+```{r, echo = FALSE}
+# Create data frame for demographics
+inputFile <- paste("../../data/ScreeningBMI.csv", sep = "")
+# Read input file ignoring all single quotes
+screening.data <- read.csv(file = inputFile, header = TRUE)
+
+new.data <- merge(processed.data, screening.data, by = "id")
+
+demographics <- new.data %>%
+  group_by(id) %>%
+  summarise(Age = AGE_yrs[1], Gender = GENDER[1], Race = race3[1], 
+            Education = educcat[1], InitialBMI = bmi_sv[1], BMI_Group = getBMIGroup(bmi_sv[1]),
+            tx = tx[1])
+
+# Create data frame for demographics for counselor initiated
+demographicsCI <- demographics %>%
+  filter(tx == "Counselor-Initiated")
+
+# Create data frame for demographics for Self initiated
+demographicsSI <- demographics %>%
+  filter(tx == "Self-Initiated") 
+
+
+#Initialize demographic summary table
+demo.summary1 <- data.frame(matrix(ncol = 3, nrow = 10))
+rownames(demo.summary1) <- c("Female", "Male", "African American", "Caucasian American", "Other", "Less than College",
+                            "College or Above", "Overweight (BMI: 25-29.9)", 
+                            "Obese (BMI: 30+)", "Age (mean, sd)")
+colnames(demo.summary1) <- c("Number of Participants CI", "Number of Participants SI", "Total(%)")
+
+#Percentage of characteristic in study total for Counselor-Initiated
+demo.summary1[1,1] <- demo(demographicsCI$Gender, "Female") 
+demo.summary1[2,1] <- demo(demographicsCI$Gender, "Male") 
+demo.summary1[3,1] <- demo(demographicsCI$Race, "African American") 
+demo.summary1[4,1] <- demo(demographicsCI$Race, "Caucasian American") 
+demo.summary1[5,1] <- demo(demographicsCI$Race, "Others") 
+demo.summary1[6,1] <- demo(demographicsCI$Education, "Less than College") 
+demo.summary1[7,1] <- demo(demographicsCI$Education, "College or Above") 
+demo.summary1[8,1] <- demo(demographicsCI$BMI_Group, "Overweight") 
+demo.summary1[9,1] <- demo(demographicsCI$BMI_Group, "Obese")
+demo.summary1[10,1] <- paste(round(mean(demographicsCI$Age),1),"(",
+                             round(sd(demographicsCI$Age),1), ")", sep= "")
+
+
+#Percentage of characteristic in study total for Self-Initiated
+demo.summary1[1,2] <- demo(demographicsSI$Gender, "Female") 
+demo.summary1[2,2] <- demo(demographicsSI$Gender, "Male") 
+demo.summary1[3,2] <- demo(demographicsSI$Race, "African American") 
+demo.summary1[4,2] <- demo(demographicsSI$Race, "Caucasian American") 
+demo.summary1[5,2] <- demo(demographicsSI$Race, "Others") 
+demo.summary1[6,2] <- demo(demographicsSI$Education, "Less than College") 
+demo.summary1[7,2] <- demo(demographicsSI$Education, "College or Above") 
+demo.summary1[8,2] <- demo(demographicsSI$BMI_Group, "Overweight") 
+demo.summary1[9,2] <- demo(demographicsSI$BMI_Group, "Obese") 
+demo.summary1[10,2] <- paste(round(mean(demographicsSI$Age),1),"(",
+                             round(sd(demographicsSI$Age),1), ")", sep= "")
+
+#Calculate totals
+demo.summary1[1,3] <- percentdemo(demographics$Gender, "Female") 
+demo.summary1[2,3] <- percentdemo(demographics$Gender, "Male") 
+demo.summary1[3,3] <- percentdemo(demographics$Race, "African American") 
+demo.summary1[4,3] <- percentdemo(demographics$Race, "Caucasian American") 
+demo.summary1[5,3] <- percentdemo(demographics$Race, "Others") 
+demo.summary1[6,3] <- percentdemo(demographics$Education, "Less than College") 
+demo.summary1[7,3] <- percentdemo(demographics$Education, "College or Above") 
+demo.summary1[8,3] <- percentdemo(demographics$BMI_Group, "Overweight") 
+demo.summary1[9,3] <- percentdemo(demographics$BMI_Group, "Obese") 
+demo.summary1[10,3] <- paste(round(mean(demographics$Age),1),"(",
+                             round(sd(demographics$Age),1), ")", sep= "")
+
+kable(demo.summary1) %>%
+  kable_styling(c("striped", "bordered")) %>%
+  group_rows("Gender", 1, 2) %>%
+  group_rows("Race", 3, 5) %>%
+  group_rows("Education", 6,7) %>%
+  group_rows("BMI Category", 8,9) %>%
+  group_rows("Age", 10, 10)
+
+```
+
+## Summary Weight Change Table
+```{r}
+weightChangeResults <- new.data %>%
+  group_by(id) %>%
+  summarize(Baseline = 0,
+            WeightLostkg4M = WEIGHT_AVG_4M[1] - WEIGHT_AVG_Base[1], 
+            WeightLostkg12M = WEIGHT_AVG_12M_bt[1] - WEIGHT_AVG_Base[1],
+            Treatment = tx[1], Gender = GENDER[1])
+
+#Create table of summary data
+weightChangeSummary <- data.frame(matrix(ncol = 2, nrow = 2))
+rownames(weightChangeSummary) <- c("4 Month (mean, median, sd)", "12 Month (mean, median, sd)")
+colnames(weightChangeSummary) <- c("Counselor-Initiated", "Self-Initiated")
+
+#Add mean, median, and standard deviation information
+CIData <- weightChangeResults[which(weightChangeResults$Treatment == "Counselor-Initiated"),]
+SIData <- weightChangeResults[which(weightChangeResults$Treatment == "Self-Initiated"),]
+weightChangeSummary[1,1] <- paste(round(mean(CIData$WeightLostkg4M, na.rm = TRUE),1), 
+                                round(median(CIData$WeightLostkg4M, na.rm = TRUE),1),
+                                round(sd(CIData$WeightLostkg4M, na.rm = TRUE),1), sep = ", ")
+weightChangeSummary[2,1] <- paste(round(mean(CIData$WeightLostkg12M, na.rm = TRUE),1), 
+                                round(median(CIData$WeightLostkg12M, na.rm = TRUE),1),
+                                round(sd(CIData$WeightLostkg12M, na.rm = TRUE),1), sep = ", ")
+weightChangeSummary[1,2] <- paste(round(mean(SIData$WeightLostkg4M, na.rm = TRUE),1), 
+                                round(median(SIData$WeightLostkg4M, na.rm = TRUE),1),
+                                round(sd(SIData$WeightLostkg4M, na.rm = TRUE),1), sep = ", ")
+weightChangeSummary[2,2] <- paste(round(mean(SIData$WeightLostkg12M, na.rm = TRUE),1), 
+                                round(median(SIData$WeightLostkg12M, na.rm = TRUE),1),
+                                round(sd(SIData$WeightLostkg12M, na.rm = TRUE),1), sep = ", ")
+
+kable(weightChangeSummary) %>%
+  kable_styling(c("striped", "bordered"))
+
+
+WeightChangeFigureData <- weightChangeResults %>%
+  group_by(Treatment) %>%
+  summarize(Baseline = mean(Baseline),
+            Mean4M = mean(WeightLostkg4M, na.rm = TRUE),
+            Mean12M = mean(WeightLostkg12M, na.rm = TRUE))
+
+melted <- melt(WeightChangeFigureData, id = "Treatment", value.name = "Meanweightchange", variable.name = "Time")
+
+ggplot(melted, aes(x= Time, y = Meanweightchange, group = Treatment, color = Treatment)) + geom_line(size = 1) + geom_point(size = 2) + labs(x = " ", y = "Mean weight change (kg)")
+```
+
+## Average % Days Logged-in
+
+Login Days decreased steadily over the course of the study. Weekend and Weekday logins tended to follow the same trends with peaks and falls in the average logins. The increase at week 46 aligns with the participants' receivals of reminder cards about the upcoming 12 month weigh-in
+
+```{r}
+#Average % Days logged-in per week over all 52 weeks of the study broken down by weekend/weekday
+
+logins.weekly <- processed.data %>%
+  mutate(Weekday = weekdays(loseit_date, abbreviate = TRUE)) %>%
+  filter(Week != 53) %>%
+  group_by(id, Week, tx, GENDER) %>% 
+  summarize(PerWeekdays = sum(Weekday %in% c("Mon", "Tue", "Wed", "Thu", "Fri"))/5,
+            PerWeekendDays = sum(Weekday %in% c("Sat", "Sun"))/2)
+
+logins.weekly.all <- logins.weekly %>%
+  group_by(Week) %>%
+  summarize(week = mean(PerWeekdays), weekend = mean(PerWeekendDays))
+
+logins.weekly.all <- melt(logins.weekly.all, id.vars = c("Week"), variable.name = "Day")
+
+ggplot(logins.weekly.all, aes(x = Week)) +
+  geom_line(aes(y = value, col = Day), size = 1) +
+  labs(x = "Week", y = "Average % Days Logged-in") +
+  scale_x_continuous(breaks = seq(0,52,2)) +
+  scale_y_continuous(breaks = seq(.5,1,.05)) +
+  theme(legend.position = c(.1,.1), legend.background = element_rect(color = "black", linetype = "solid"))
+```
+
+
+## Number of Login Days in the First 4 Weeks
+
+Trends within treatment groups are apparent. Counselor-Initiated groups have similar login habits in the first 4 weeks while Self-Initiated groups have more similar login habits regardless of Success. Logins are just starting to decrease in the unsuccessful Counselor-Initiated group in the fourth week which led us to believe there may be a reason to explore the first 8 weeks of the study. Another point to note is that consistent logins in the first 4 weeks didn't seem to be a predictor of successful weight loss for self-initiated people.
+
+```{r, echo = FALSE}
+#Create a data frame with average calories and number of logins per week for each ID number
+
+fourWeeks <- processed.data %>%
+  filter(Week %in% c(1,2,3,4)) %>%
+  group_by(id, loseit_date) %>%
+  select(id, loseit_date, tx, Success, Week) %>%
+  group_by(id, Week) %>%
+  summarize(tx = tx[1], Success= Success[1], NumOfEntries = n())
+
+#Create dataframe with row for each id's weeks 1-4
+allID <- unique(fourWeeks$id)
+allID4Week <- as.data.frame(rep(allID, 4))
+colnames(allID4Week) <- "id"
+allID4Week <- arrange(allID4Week, id)
+allID4Week$Week <- rep(seq(1:4))
+
+#merge dataframes
+allWeeks <- merge(allID4Week, fourWeeks, all.x = TRUE)
+allWeeks$NumOfEntries <- as.numeric(allWeeks$NumOfEntries)
+
+#Fill treatment and Success data down
+allWeeks <- allWeeks %>%
+  group_by(id) %>%
+  fill(tx, .direction = "down") %>%
+  fill(Success, .direction = "down") 
+  
+allWeeks[is.na(allWeeks)] <- 0
+
+#Stacked bar graph of the number of Logins in the first 4 weeks
+
+allWeeks$NumOfEntries <- factor(allWeeks$NumOfEntries)
+
+ggplot(allWeeks, aes(x = Week, fill = NumOfEntries)) +
+  geom_bar(position = "fill", aes(color = NumOfEntries)) +
+  facet_grid(.~ Success + tx) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_x_discrete(breaks = c(1,2,3,4))
+
+
+
+```
+
+## Number of Login Days in the first 8 weeks
+
+* When looking at the first 8 weeks, it is easier to see the trends among groups. The Counselor-initiated Success group still looks to be the most stable in terms of days logged in
+
+* The Self-Initiated Success group began to level out after the 4th week whereas the unsuccessful Self-Initiated group's logins continued to decrease
+
+* The Counselor-Initiated unsuccessful group remained high in logins but there was more variability in the number of logins between weeks.
+
+```{r, echo = FALSE}
+#Create a data frame with average calories and number of logins per week for each ID number
+
+weeks8 <- processed.data %>%
+  filter(Week %in% 1:8) %>%
+  group_by(id, loseit_date) %>%
+  select(id, loseit_date, tx, Success, Week) %>%
+  group_by(id, Week) %>%
+  summarize(tx = tx[1], Success= Success[1], NumOfEntries = n())
+
+#Create dataframe with row for each id's weeks 1-4
+allID <- unique(weeks8$id)
+allID8Week <- as.data.frame(rep(allID, 8))
+colnames(allID8Week) <- "id"
+allID8Week <- arrange(allID8Week, id)
+allID8Week$Week <- rep(seq(1:8))
+
+#merge dataframes
+allWeeks <- merge(allID8Week, weeks8, all.x = TRUE)
+allWeeks$NumOfEntries <- as.numeric(allWeeks$NumOfEntries)
+
+#Fill treatment and Success data down
+allWeeks <- allWeeks %>%
+  group_by(id) %>%
+  fill(tx, .direction = "down") %>%
+  fill(Success, .direction = "down") 
+  
+allWeeks[is.na(allWeeks)] <- 0
+
+levels(allWeeks$Success) <- c("Not Successful", "Successful")
+
+#Stacked bar graph of the number of Logins in the first 8 weeks
+
+allWeeks$NumOfEntries <- factor(allWeeks$NumOfEntries)
+
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+ggplot(allWeeks, aes(x = factor(Week), fill = NumOfEntries)) +
+  geom_bar(position = "fill") +
+  facet_grid(.~ Success + tx) +
+  #scale_fill_manual(values = cbbPalette, name = "Number of\nEntries") +
+  #scale_color_colorblind(name = "Number of\nEntries")+
+  labs(y = "Frequency", x = "Week") +
+  scale_fill_brewer(palette = "Spectral",name = "Number of\nEntries")
+
+#theme(legend.position = "top", legend.direction = "horizontal") + guides(fill = guide_legend(nrow = 1), override.aes = list(size = 4))
+
+
+
+#Save as .tiff
+#ggsave("NumOfEntries.tiff", units="in", dpi=600, compression = 'lzw')
+
+#Save as .png
+ggsave("NumOfEntries.png", width = 6, height = 3.5,units="in", dpi=600)
+```
+   
+   
+## Number of Login Days in 4 months
+   
+```{r, echo = FALSE}
+#Create a data frame with average calories and number of logins per week for each ID number
+
+weeks16 <- processed.data %>%
+  filter(Week %in% 1:16) %>%
+  group_by(id, loseit_date) %>%
+  select(id, loseit_date, tx, Success, Week) %>%
+  group_by(id, Week) %>%
+  summarize(tx = tx[1], Success= Success[1], NumOfEntries = n())
+
+#Create dataframe with row for each id's weeks 1-16
+allID <- unique(weeks16$id)
+allID16Week <- as.data.frame(rep(allID, 16))
+colnames(allID16Week) <- "id"
+allID16Week <- arrange(allID16Week, id)
+allID16Week$Week <- rep(seq(1:16))
+
+#merge dataframes
+allWeeks <- merge(allID16Week, weeks16, all.x = TRUE)
+allWeeks$NumOfEntries <- as.numeric(allWeeks$NumOfEntries)
+
+#Fill treatment and Success data down
+allWeeks <- allWeeks %>%
+  group_by(id) %>%
+  fill(tx, .direction = "down") %>%
+  fill(Success, .direction = "down") 
+  
+allWeeks[is.na(allWeeks)] <- 0
+
+levels(allWeeks$Success) <- c("Not Successful", "Successful")
+
+#Stacked bar graph of the number of Logins in the first 8 weeks
+
+allWeeks$NumOfEntries <- factor(allWeeks$NumOfEntries)
+
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+ggplot(allWeeks, aes(x = factor(Week), fill = NumOfEntries)) +
+  geom_bar(position = "fill") +
+  facet_grid(.~ tx) +
+  #scale_fill_manual(values = cbbPalette, name = "Number of\nEntries") +
+  #scale_color_colorblind(name = "Number of\nEntries")+
+  labs(y = "Frequency", x = "Week") +
+  scale_fill_brewer(palette = "Spectral",name = "Number of\nEntries")
+
+#theme(legend.position = "top", legend.direction = "horizontal") + guides(fill = guide_legend(nrow = 1), override.aes = list(size = 4))
+
+
+
+#Save as .tiff
+#ggsave("NumOfEntries.tiff", units="in", dpi=600, compression = 'lzw')
+
+#Save as .png
+ggsave("NumOfEntries.png", width = 6, height = 3.5,units="in", dpi=600)
+```
+
+## Average Weekly Entries among Weight Loss Categories
+
+There are several things to note about this graph
+
+- The three weight loss groups (Some Loss, No Loss, and NA) all roughly start at the same average weekly entry while the Success group starts a little higher. 
+
+- Success is the most stable group while the others are more dynamic. 
+
+- By weeks 4 through 8, there is a clear separation between Some Loss/Success and No Loss/NA.
+
+```{r, echo = FALSE}
+weightLossCat <- function(logWeightChange) {
+  if (is.na(logWeightChange)) {
+    return("NA")
+  }
+  else if (logWeightChange <= log(.95)) {
+    return("Success")
+  }
+  else if (logWeightChange <= log(.977) & 
+           logWeightChange > log(.95)) {
+    return("Some Loss")
+  }
+  else {
+    return("No Loss")
+  }
+}
+
+#Categorize Weight loss into gained weight(more than 1% of starting weight), 
+#stayed roughly the same (within 1% of starting weight),
+#lost more than 1% and less than 5%, and lost more than >5%
+
+eightWeeks <- processed.data %>%
+  filter(Week %in% 1:8) %>%
+  group_by(id, Week) %>%
+  mutate(WeeklyEntries = n(), logWeightLoss = log(WEIGHT_AVG_12M_bt[1]) - log(WEIGHT_AVG_Base[1]),
+          WeightLossCat = weightLossCat(logWeightLoss[1])) %>%
+  group_by(Week, WeightLossCat) %>%
+  summarize(AvgWeeklyEntries = mean(WeeklyEntries)) %>%
+  ungroup(Week) %>%
+  mutate(label = if_else(Week == max(Week), WeightLossCat, NA_character_))
+
+#Line graph of Average weekly entries among categories (gained weight,no change, some loss, success, NA)
+
+ggplot(eightWeeks, aes(x = Week, y = AvgWeeklyEntries, group = WeightLossCat, color = WeightLossCat)) +
+  geom_line(size = 1.5) +
+  scale_color_colorblind()+
+  geom_label_repel(aes(label = label), size = 4, nudge_y = .05, na.rm = TRUE) +
+  scale_y_continuous(breaks = seq(6,7,.1)) + 
+  theme(legend.position = "none") +
+  theme(axis.text = element_text(size = 12), axis.title = element_text(size = 15)) +
+  labs(y = "Average Weekly Entries")
+
+#Save as .tiff
+#ggsave("AverageWeeklyEntries.tiff", units="in", width = 8, height = 4, dpi=600, compression = 'lzw')
+
+#Save as .png
+#ggsave("AverageWeeklyEntries.png", units="in", width = 8, height = 4, dpi=600)
+
+```
+
+
+# Linear Regression with Training on PCA
+
+Our outcome variables of weight change at 4 and 12 months were modeled as the log difference of the starting weight and final weight at 4 and 12 months. We conducted the analysis in R. We used the package FactoMineR to perform principal component analysis (PCA) on the data to reduce dimension and eliminate correlation between variables by creating new uncorrelated, orthogonal variables known as principal components (PCs).
+
+Variables used to conduct PCA: Treatment, Age, Gender, log of the individual's Initial Weight, Number of Self-Weigh-ins, Total Entries, Total Food Days, Total Exercise Days, Total Breakfast, Lunch, Dinner, and Snack Days, Frequency of Breakfast, Lunch, Dinner, and Snack Recorded, Average Total Calories, Average Exercise Calories, Average Breakfast, Lunch, Dinner, and Snack Calories, Average Breakfast, Lunch, Dinner, and Snack Words. 
+
+We used to primary methods of analysis, linear regression and random forest, to predict weight loss at 4 and 12 months using the first 5 PCs as predictors. Due to missing response variable values at 4 and 12 month weight loss, we only had 143 records to predict 4 month weight loss and 144 records to predict 12 month weight loss. To make the best use of the small data set, we performed 5-fold cross validation (CV) on the data set. 
+
+In order to cross validate, we first divided the data into 5 folds We performed PCA on the data in 4 of the folds, trained the model on those PCs, and predicted the log weight change for the data in the fifth fold. We recorded the predictions then repeated the analysis with a permutation of folds until all data points have been predicted. Finally plot the actual vs. predicted log weight change and determine the r-squared value.
+
+Regardless of whether we built the models without PCA variables or with PCA or with random forest analysis or linear regression, 4 month predictions always had a higher r-squared value compared to 12 month predictions. We drew several conclusions from this analysis
+
+- The predictors we included in our analysis are more accurate predictors for 4 month analysis, so there may either be better predictors for 12 month weight change that are different than the 4 month predictors or using the data from the first 4 and 8 weeks is not sufficient information to predict 12 month weight change.
+
+- Models tend to underpredict Success. Especially for 12 month predictions, the models are very conservative in how much they predict an individual will lose. 
+
+
+
+
+## Predict 4 Month with 1-4 Weeks
+
+```{r, echo = FALSE}
+allTypes4Month(SummaryWeeks1to4.data, 4, 2, 5, "WeightLoss4Month")
+```
+
+## Predict 4 Month with 1-8 Weeks
+
+```{r, echo = FALSE}
+allTypes4Month(SummaryWeeks1to8.data, 8, 2, 5, "WeightLoss4Month")
+```
+
+## Predict 12 Month with 1-4 Weeks
+
+```{r, echo = FALSE}
+allTypes12Month(SummaryWeeks1to4.data, 4, 2, 5, "WeightLoss12Month")
+```
+
+## Predict 12 Month with 1-8 Weeks
+
+```{r, echo = FALSE}
+allTypes12Month(SummaryWeeks1to8.data, 8, 2, 5, "WeightLoss12Month")
+```
+
+# PCA Results
+
+## 4 Weeks
+
+```{r}
+  myvars <- names(SummaryWeeks1to4.data) %in% c("Treatment", "Age", "Gender", "logInitialWeight", "NumWeigh") 
+  appData <- SummaryWeeks1to4.data[!myvars]
+
+  responseVars <- names(appData) %in% c("id", "WeightLoss12Month", "WeightLoss4Month", "Class4Month", "Class12Month")  
+  appDataFiltered <- appData[!responseVars]
+
+# Get the PCA results
+# Set default names for the 5 first PCs
+pcNames <- c("PC 1", "PC 2", "PC 3", "PC 4", "PC 5")
+numPCSrslts <- 3
+# ncp is number of dimensions kept in the final results
+rslt.pca <- PCA(appDataFiltered[,], ncp = numPCSrslts, graph = FALSE, ind.sup = NULL)
+# Get the eigenvalues of the PCA
+eig.val <- get_eigenvalue(rslt.pca)
+
+# get cum freq
+cum.var.per <- c(0:10)
+cum.var.per[2:11] <- eig.val[1:10,"cumulative.variance.percent"]
+df.Var <- data.frame(dim = factor(0:10), cum.var.per)
+
+linecolor = "black" 
+main <- "Cumulative Explained Variances"
+xlab <- "Dimensions"
+ylab <- "Cumulative Percentage of explained variances"
+linetype <- "solid"
+eig <- df.Var$cum.var.per
+text_labels <- paste0(round(eig,1), "%")
+
+p <- ggplot(df.Var, aes(dim, cum.var.per, group =1))+ geom_line(color = linecolor, linetype = linetype)+
+    geom_point(shape=19, color=linecolor)+geom_text(label = text_labels, vjust=+2.9, hjust = 0.015)+ 
+    labs(title = main, x = xlab, y = ylab) + theme(axis.text = element_text(size = 12), axis.title = element_text(size = 15))
+p
+
+#Save as .tiff
+#ggsave("PCA_Cum_Var_4w.tiff", units="in", dpi=600, compression = 'lzw')
+
+#Save as .png
+#ggsave("PCA_Cum_Var_4w.png", units="in", dpi=600)
+
+
+# Get correlation of variables and contribution information
+varPCA <- get_pca_var(rslt.pca)
+
+
+
+# Display the quality of representation of the variables on factor map
+options(repr.plot.width = 10, repr.plot.height = 5)
+colnames(varPCA$cos2) <- pcNames[1:numPCSrslts]
+cos2Corr.plot <- corrplot(t(varPCA$cos2), is.corr=FALSE, 
+                          #title = "Quality of Representation of Variables",
+                          mar=c(0,0,2,0))
+
+#Highlight the most contributing variables for each dimension
+# The larger the value of the contribution, the more the variable contributes to the component
+colnames(varPCA$contrib) <- pcNames[1:numPCSrslts]
+contribCorr.plot <- corrplot(t(varPCA$contrib), is.corr=FALSE, 
+                             #title = "Contribution of Variables",
+                             mar=c(0,0,2,0))
+```
+
+## 8 Weeks
+
+```{r}
+  myvars <- names(SummaryWeeks1to8.data) %in% c("Treatment", "Age", "Gender", "logInitialWeight", "NumWeigh") 
+  appData <- SummaryWeeks1to8.data[!myvars]
+
+  responseVars <- names(appData) %in% c("id", "WeightLoss12Month", "WeightLoss4Month", "Class4Month", "Class12Month")  
+  appDataFiltered <- appData[!responseVars]
+
+# Get the PCA results
+# Set default names for the 5 first PCs
+pcNames <- c("PC 1", "PC 2", "PC 3", "PC 4", "PC 5")
+numPCSrslts <- 3  
+# ncp is number of dimensions kept in the final results
+rslt.pca <- PCA(appDataFiltered[,], ncp = numPCSrslts, graph = FALSE, ind.sup = NULL)
+# Get the eigenvalues of the PCA
+eig.val <- get_eigenvalue(rslt.pca)
+
+# get cum freq
+cum.var.per <- c(0:10)
+cum.var.per[2:11] <- eig.val[1:10,"cumulative.variance.percent"]
+df.Var <- data.frame(dim = factor(0:10), cum.var.per)
+
+linecolor = "black" 
+main <- "Cumulative Explained Variances"
+xlab <- "Dimensions"
+ylab <- "Cumulative Percentage of explained variances"
+linetype <- "solid"
+eig <- df.Var$cum.var.per
+text_labels <- paste0(round(eig,1), "%")
+
+p <- ggplot(df.Var, aes(dim, cum.var.per, group =1))+ geom_line(color = linecolor, linetype = linetype)+
+    geom_point(shape=19, color=linecolor)+geom_text(label = text_labels, vjust=+2.9, hjust = 0.015, size = 4)+ 
+    labs(title = main, x = xlab, y = ylab)+ theme(axis.text = element_text(size = 12), axis.title = element_text(size = 15))
+p
+
+# Get correlation of variables and contribution information
+varPCA <- get_pca_var(rslt.pca)
+
+# Display the quality of representation of the variables on factor map
+options(repr.plot.width = 10, repr.plot.height = 5)
+colnames(varPCA$cos2) <- pcNames[1:numPCSrslts]
+cos2Corr.plot <- corrplot(t(varPCA$cos2), is.corr=FALSE, 
+                          #title = "Quality of Representation of Variables", 
+                          mar=c(0,0,2,0))
+
+# Highlight the most contributing variables for each dimension
+# The larger the value of the contribution, the more the variable contributes to the component
+colnames(varPCA$contrib) <- pcNames[1:numPCSrslts]
+contribCorr.plot <- corrplot(t(varPCA$contrib), is.corr=FALSE, 
+                             #title = "Contribution of Variables",
+                             mar=c(0,0,2,0))
+```
+
+
+# Linear Regression on First 8 Weeks predicting 4 Month Weight Loss with PCA App vars and baseline
+
+```{r}
+  myvars <- names(SummaryWeeks1to8.data) %in% c("Treatment", "Age", "Gender", "logInitialWeight", "NumWeigh") 
+  appData <- SummaryWeeks1to8.data[!myvars]
+
+reg.data <- GetLosePCA4(appData, 8, 3, graph = FALSE)
+
+Allreg.data <- cbind(reg.data$pca.individual, SummaryWeeks1to8.data[myvars])
+
+linearReg <- lm(-WeightLoss4Month ~ Dim.1 + Dim.2 + Treatment + Age + NumWeigh, Allreg.data)
+summary(linearReg)
+
+linearReg1 <- lm(-WeightLoss4Month ~ Dim.1 + Dim.2 + Dim.3 + Treatment + Age + NumWeigh, Allreg.data)
+summary(linearReg1)
+
+```
+
+
+# Linear Regression on First 8 Weeks predicting 12 Month Weight Loss with PCA App vars and baseline
+
+```{r}
+  myvars <- names(SummaryWeeks1to8.data) %in% c("Treatment", "Age", "Gender", "logInitialWeight", "NumWeigh") 
+  appData <- SummaryWeeks1to8.data[!myvars]
+
+  responseVars <- names(appData) %in% c("id", "WeightLoss12Month", "WeightLoss4Month", "Class4Month", "Class12Month")  
+  appDataFiltered <- appData[!responseVars]
+  
+reg.data <- GetLosePCA12(appData, 8, 3, graph = FALSE)
+
+
+Allreg.data <- cbind(reg.data$pca.individual, SummaryWeeks1to8.data[myvars])
+
+
+linearReg <- lm(-WeightLoss12Month ~ Dim.1 + Dim.2 + Treatment + Age + NumWeigh, Allreg.data)
+summary(linearReg)
+
+linearReg1 <- lm(-WeightLoss12Month ~ Dim.1 + Dim.2 + Dim.3 + Treatment + Age + NumWeigh, Allreg.data)
+summary(linearReg1)
+
+
+```
+
+# Future Studies
+
+A topic for future study on this data would be on how weight loss changed from month 4 to month 12. For example, over half of the participants who were successful at the 4th month benchmark ended up gaining some back. Additionally, most of the people who hadn't lost weight by the 4th month didn't lose weight by the 12th month either.
+
+As seen in the analysis section, our models were not as successful at predicting 12 month weight change. The following graphs show why it is a hard task. There is a lot that happens between months 4 and 12. Some who had successfully lose weight, gained it back while others who hadn't lost weight at 4 months successfully lost weight at 12 months.
+
+
+## Predicting 12 Month Weight Loss with 4 Month Weight Loss
+
+```{r}
+mymodel <- as.formula("WeightLoss12Month ~ WeightLoss4Month")
+SummaryNoNA <- subset(SummaryWeeks1to4.data, !is.na(SummaryWeeks1to4.data[, "WeightLoss4Month"]))
+lm <- linearCV(SummaryNoNA, "WeightLoss12Month", 5, mymodel, "Only 4 Month Weight Loss")
+lm$plot
+summary(lm)
+```
+
+
+```{r}
+mymodel <- as.formula("WeightLoss12Month ~ WeightLoss4Month + Age + Gender + logInitialWeight")
+SummaryNoNA <- subset(SummaryWeeks1to4.data, !is.na(SummaryWeeks1to4.data[, "WeightLoss4Month"]))
+lm <- linearCV(SummaryNoNA, "WeightLoss12Month", 5, mymodel, "4 Month WL and Covariates")
+lm$plot
+summary(lm)
+```
+
+Another topic for future analysis is using the breakfast, lunch, dinner, and snack descriptions provided by the participants to analyze the foods individuals consumed. Researchers can use a package such as R's text2vec to do some text-processing and analyze trends in an individual's diet to see how it relates to their weight loss.
