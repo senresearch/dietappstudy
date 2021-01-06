@@ -234,14 +234,17 @@ crossValNewPCA4M <- function(data, numWeeks, numPC, numOfFolds, model, title,  d
   #merge the predicted values into the data set by id number
   newdf <- merge(data.noNA, predVec, by = "row.names") 
   #calculate r-squared 
-  rsquared <- round(calcRSqr(newdf$Prediction, newdf[, "WeightLoss4Month"]), digits = 4) * 100 
+  rsquared <- round(calcRSqr(newdf$Prediction, newdf[, "WeightLoss4Month"]), digits = 4) 
   spearman <- cor.test(newdf$WeightLoss4Month, newdf$Prediction, method = "spearman", exact = FALSE)
   rho <- round(spearman$estimate, digits = 4)
   #Calculate the AUC for the multi-class prediction
   mauc = GetCstats(newdf$WeightLoss4Month, newdf$Prediction)
   mauc = round(mauc, digits = 4)
   #return a plot of predicted vs actual values
-  return("plot" = plotPreds(newdf, newdf[, "WeightLoss4Month"], rsquared, rho, mauc, title))
+  return(list("rsquared" = rsquared,
+              "rho" = unname(rho),
+              "mAUC" = mauc))
+  # return("plot" = plotPreds(newdf, newdf[, "WeightLoss4Month"], rsquared, rho, mauc, title))
 }
 
 #**************************************************
@@ -306,14 +309,17 @@ crossValNewPCA12M <- function(data, numWeeks, numPC, numOfFolds, model, title, d
   #merge the predicted values into the data set by id number
   newdf <- merge(data.noNA, predVec, by = "row.names") 
   #calculate r-squared 
-  rsquared <- round(calcRSqr(newdf$Prediction, newdf[, "WeightLoss12Month"]), digits = 4) * 100 
+  rsquared <- round(calcRSqr(newdf$Prediction, newdf[, "WeightLoss12Month"]), digits = 4)  
   spearman <- cor.test(newdf$WeightLoss12Month, newdf$Prediction, method = "spearman", exact = FALSE)
   rho = round(spearman$estimate, digits = 4)
   #Calculate the AUC for the multi-class prediction
   mauc = GetCstats(newdf$WeightLoss12Month, newdf$Prediction)
   mauc = round(mauc, digits = 4)
   #return a plot of predicted vs actual values
-  return("plot" = plotPreds(newdf, newdf[, "WeightLoss12Month"], rsquared, rho, mauc, title))
+  return(list("rsquared" = rsquared,
+              "rho" = unname(rho),
+              "mAUC" = mauc))
+  # return("plot" = plotPreds(newdf, newdf[, "WeightLoss12Month"], rsquared, rho, mauc, title))
 }
 
 
@@ -355,7 +361,8 @@ df.class$PredClass = as.integer(as.logical(predVal <=log(0.95))) +
                                                 predVal <=log(0.977)))*2 +
                         as.integer(as.logical(predVal > log(0.977)))*3
 
-Cstats = multiclass.roc(response = df.class$Actual, predictor = df.class$PredClass)
+Cstats =  multiclass.roc(response = df.class$Actual, predictor = df.class$PredClass, direction = "<")
+
 return(Cstats$auc[1])
 
 }
@@ -393,14 +400,18 @@ linearCV <- function(data, varName, numOfFolds, model, title) {
   #merge the predicted values into the data set by id number
   newdf <- merge(data.noNA, predVec, by = 0) 
   #calculate r-squared 
-  rsquared <- round(calcRSqr(newdf$Prediction, newdf[, varName]), digits = 4) * 100 
+  rsquared <- round(calcRSqr(newdf$Prediction, newdf[, varName]), digits = 4) 
   spearman <- cor.test(newdf[, varName], newdf$Prediction, method = "spearman")
   rho = round(spearman$estimate, digits = 4)
   #Calculate the AUC for the multi-class prediction
   mauc = GetCstats(newdf[, varName], newdf$Prediction)
   mauc = round(mauc, digits = 4)
   #return a plot of predicted vs actual values
-  return(list("rsquared" = rsquared, "plot" = plotPreds(newdf, newdf[, varName], rsquared, rho, mauc, title))) 
+  return(list("rsquared" = rsquared,
+              "rho" = unname(rho),
+              "mAUC" = mauc)) 
+  # return(list("rsquared" = rsquared, "plot" = plotPreds(newdf, newdf[, varName], rsquared, rho, mauc,
+  #                                                       title)))
 }
 
 

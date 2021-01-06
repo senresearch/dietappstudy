@@ -46,3 +46,32 @@ weightLossPred <- function(logWeightChange) {
     return("No Loss")
   }
 }
+
+demoTest <- function(dat, dfAge){
+  # subset number of participants
+  dem <- dat[1:9, c(1, 2)]
+  
+  # convert to numeric type
+  dem[, 1] <- as.numeric(dem[, 1])
+  dem[, 2] <- as.numeric(dem[, 2])
+  
+  # apply chi-squared test
+  XtestGender <- chisq.test(x = (dem[1:2,c(1,2)]))
+  XtestRace <- chisq.test(x = dem[3:5,c(1,2)])
+  XtestEducation <- chisq.test(x = dem[6:7,c(1,2)])
+  XtestBMI <- chisq.test(x = dem[8:9,c(1,2)])
+  
+  # apply t-test
+  TtestAge <- t.test(Age~Treatment, data = dfAge)
+  
+  # generate data.frame to return results
+  rslts <- data.frame(Xtest = c("XtestGender", "XtestRace", "XtestEducation", "XtestBMI", "TtestAge"),
+                      Pvalue = round(c(XtestGender$p.value, XtestRace$p.value, XtestEducation$p.value, 
+                                       XtestBMI$p.value, TtestAge$p.value),2))
+  
+  
+  retun(rslts)
+  
+}
+  
+  

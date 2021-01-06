@@ -1,0 +1,381 @@
+---
+title: "Weight loss predictions through linear regression"
+output:   
+  html_document:
+    fig_width: 10
+    fig_height: 8
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    number_sections: true
+    smooth_scroll: true
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+#Read libraries
+
+library(knitr)
+library(tidyverse)
+library(reshape2)
+library(lubridate)
+library(kableExtra)
+library(gridExtra)
+library(ggrepel)
+library(DiagrammeR)
+library(caret)
+library(FactoMineR)
+library(factoextra)
+library(fastDummies)
+library(corrplot)
+library(pROC)
+library(ggthemes)
+
+#Read external functions
+source("../utils/demoFunc.R")
+source("../utils/analysisFunc.R")
+
+#Read File
+
+# Get input folder and data file
+dirInput <- "../../data/"
+inputFile <- paste(dirInput, "ProcessedData_2019_04_03.txt", sep = "")
+# Read input file 
+processed.data <- read.table(file = inputFile, header = TRUE, quote = "\"", sep = "\t", fill = TRUE)
+
+
+
+#Take out first column with just row number
+processed.data <- processed.data %>%
+  select(-X)
+
+#Put into r date form
+processed.data$VST_DATE_Base <- mdy(processed.data$VST_DATE_Base)
+processed.data$loseit_date <- mdy(processed.data$loseit_date)
+
+#Make Success a factor
+processed.data$Success <- factor(processed.data$Success)
+
+#Make Treatment a factor and change Treatment names
+processed.data$tx <- factor(processed.data$tx)
+levels(processed.data$tx) <- c("Counselor-Initiated", "Self-Initiated")
+
+# Get input files for Summary Weeks
+# Get input folder and data file
+inputFile <- c("../../data/SummaryWeeks1to4.csv",
+               "../../data/SummaryWeeks1to8.csv")
+
+# Read input file 
+SummaryWeeks1to4.data <- read.csv(file = inputFile[1], header = TRUE)
+SummaryWeeks1to8.data <- read.csv(file = inputFile[2], header = TRUE)
+
+ 
+###################################################################################
+# temp: change  weightloss such positive is weight loss and negative is weight gain
+# Assign 0 for controlled and 1 for treated.
+SummaryWeeks1to8.data$Treatment[SummaryWeeks1to8.data$Treatment == 2] <- 0
+SummaryWeeks1to4.data$Treatment[SummaryWeeks1to4.data$Treatment == 2] <- 0
+# # Change sign for weight loss so that: positive is a loss and negative is a gain.
+# SummaryWeeks1to8.data$WeightLoss4Month <- -SummaryWeeks1to8.data$WeightLoss4Month
+# SummaryWeeks1to8.data$WeightLoss12Month <- -SummaryWeeks1to8.data$WeightLoss12Month
+
+# Change sign for intake calorie so that: intake calories are negative and burnt calories are positive
+SummaryWeeks1to8.data$AvgTotalCal <- -SummaryWeeks1to8.data$AvgTotalCal
+SummaryWeeks1to8.data$AvgBreakfastCal <- -SummaryWeeks1to8.data$AvgBreakfastCal
+SummaryWeeks1to8.data$AvgLunchCal <- -SummaryWeeks1to8.data$AvgLunchCal
+SummaryWeeks1to8.data$AvgDinnerCal <- -SummaryWeeks1to8.data$AvgDinnerCal
+SummaryWeeks1to8.data$AvgSnackCal <- -SummaryWeeks1to8.data$AvgSnackCal
+
+# Change sign for weight loss so that: positive is a loss and negative is a gain.
+SummaryWeeks1to4.data$WeightLoss4Month <- SummaryWeeks1to4.data$WeightLoss4Month
+SummaryWeeks1to4.data$WeightLoss12Month <- SummaryWeeks1to4.data$WeightLoss12Month
+
+# Change sign for intake calorie so that: intake calories are negative and burnt calories are positive
+SummaryWeeks1to4.data$AvgTotalCal <- -SummaryWeeks1to4.data$AvgTotalCal
+SummaryWeeks1to4.data$AvgBreakfastCal <- -SummaryWeeks1to4.data$AvgBreakfastCal
+SummaryWeeks1to4.data$AvgLunchCal <- -SummaryWeeks1to4.data$AvgLunchCal
+SummaryWeeks1to4.data$AvgDinnerCal <- -SummaryWeeks1to4.data$AvgDinnerCal
+SummaryWeeks1to4.data$AvgSnackCal <- -SummaryWeeks1to4.data$AvgSnackCal
+
+#Take out first column with X
+SummaryWeeks1to4.data$X <- NULL
+SummaryWeeks1to8.data$X <- NULL
+```
+
+# Analyis
+
+The principal component analysis was followed by predictive modeling using linear regression. The models were evaluated by cross-validation using the proportion of variance explained (R-Squared) and the C-statistic. Linear regression using information from the app in addition to demographic variables had an R-Squared of 31% and a C-statistic of 74% for 4-month weight loss; this improved upon models using demographic variables alone. Unfortunately, app data from the first two months supplemented with demographic variables had virtually no predictive power for 12-month weight loss. The wealth of information from the app presents many statistical challenges.
+
+
+# Linear Regression with Training on PCA
+
+Our outcome variables of weight change at 4 and 12 months were modeled as the log difference of the starting weight and final weight at 4 and 12 months. We conducted the analysis in R. We used the package FactoMineR to perform principal component analysis (PCA) on the data to reduce dimension and eliminate correlation between variables by creating new uncorrelated, orthogonal variables known as principal components (PCs).
+
+
+## PCA Results
+
+Variables used to conduct PCA:   
+•	NumWeekdayDays and NumWeekendDays: the numbers of weekdays and weekend days, respectively, that include at least one entry for food, beverage, exercise, or weight.  
+•	TotalEntries: the total number of days with at least one entry for food, beverage, exercise, or weight.  
+•	TotalFoodDays: the total number of days where at least one food or beverage entry was made.   
+•	TotalExerciseDays: the total number of days where at least one entry for exercise was made.   
+•	TotalBreakfastDays, TotalLunchDays, TotalDinnerDays, and TotalSnackDays: the total number of days where at least one entry was made for breakfast, lunch, dinner, and snack, respectively.  
+•	AvgTotalCal: the average daily intake calories from food over the total number of days where at least one food entry was made.   
+•	AvgExerciseCal: the average daily calories burned through exercise over the total number of days where at least one entry for exercise was made.   
+•	AvgBreakfastCal, AvgLunchCal, AvgDinnerCal, and AvgSnackCal: the average daily calorie intakes over the total number of days where at least one entry was made for breakfast, lunch, dinner, and snack, respectively.    
+
+
+The 3 first principal components explains 82.2% of the variance.
+
+
+
+
+```{r, echo = FALSE}
+  myvars <- names(SummaryWeeks1to8.data) %in% c("Treatment", "Age", "Gender", "logInitialWeight", "NumWeigh") 
+  appData <- SummaryWeeks1to8.data[!myvars]
+
+  responseVars <- names(appData) %in% c("id", "WeightLoss12Month", "WeightLoss4Month", "Class4Month", "Class12Month")  
+  appDataFiltered <- appData[!responseVars]
+
+# Get the PCA results
+# Set default names for the 5 first PCs
+pcNames <- c("PC 1", "PC 2", "PC 3", "PC 4", "PC 5")
+numPCSrslts <- 3  
+# ncp is number of dimensions kept in the final results
+rslt.pca <- PCA(appDataFiltered[,], ncp = numPCSrslts, graph = FALSE, ind.sup = NULL)
+# Get the eigenvalues of the PCA
+eig.val <- get_eigenvalue(rslt.pca)
+
+# get cum freq
+cum.var.per <- c(0:10)
+cum.var.per[2:11] <- eig.val[1:10,"cumulative.variance.percent"]
+df.Var <- data.frame(dim = factor(0:10), cum.var.per)
+
+linecolor = "black" 
+main <- "Cumulative Explained Variances"
+xlab <- "Dimensions"
+ylab <- "Cumulative Percentage of explained variances"
+linetype <- "solid"
+eig <- df.Var$cum.var.per
+text_labels <- paste0(round(eig,1), "%")
+
+p <- ggplot(df.Var, aes(dim, cum.var.per, group =1))+ geom_line(color = linecolor, linetype = linetype)+
+    geom_point(shape=19, color=linecolor)+geom_text(label = text_labels, vjust=+2.9, hjust = 0.015, size = 4)+ 
+    labs(title = main, x = xlab, y = ylab)+ theme(axis.text = element_text(size = 12), axis.title = element_text(size = 15))
+p
+
+# Get correlation of variables and contribution information
+varPCA <- get_pca_var(rslt.pca)
+
+# Display the quality of representation of the variables on factor map
+options(repr.plot.width = 10, repr.plot.height = 5)
+colnames(varPCA$cos2) <- pcNames[1:numPCSrslts]
+cos2Corr.plot <- corrplot(t(varPCA$cos2), is.corr=FALSE, 
+                          #title = "Quality of Representation of Variables", 
+                          mar=c(0,0,2,0))
+
+# Highlight the most contributing variables for each dimension
+# The larger the value of the contribution, the more the variable contributes to the component
+colnames(varPCA$contrib) <- pcNames[1:numPCSrslts]
+contribCorr.plot <- corrplot(t(varPCA$contrib), is.corr=FALSE, 
+                             #title = "Contribution of Variables",
+                             mar=c(0,0,2,0))
+```
+PC1 represents mainly app variables describing the frequency with which participants utilized the app. We labelled PC1 “app-usage”. PC2 describes daily caloric intake that was self-monitored by participants. We labelled PC2 labelled “app-calories”.  PC3 represents participants’ exercise self-monitoring, thus we labelled PC3 “app-exercise”.
+
+
+
+
+
+## Results from the 8-week models 
+
+We used to primary methods of analysis, linear regression, to predict weight loss at 4 and 12 months using the first 3 PCs as predictors. We performed 5-fold cross validation (CV) on the data set. 
+
+In order to cross validate, we first divided the data into 5 folds We performed PCA on the data in 4 of the folds, trained the model on those PCs, and predicted the log weight change for the data in the fifth fold. We recorded the predictions then repeated the analysis with a permutation of folds until all data points have been predicted. Finally plot the actual vs. predicted log weight change and determine the r-squared value.
+
+Regardless of whether we built the models without PCA variables or with PCA, 4 month predictions always had a higher r-squared value compared to 12 month predictions. 
+
+
+```{r, include= FALSE, warning = FALSE}
+rslts4Months8Weeks <- allTypes4Month(SummaryWeeks1to8.data, 8, 2, 5, "WeightLoss4Month")
+rslts12Months8Weeks <- allTypes12Month(SummaryWeeks1to8.data, 8, 2, 5, "WeightLoss12Month")
+mymodel <- as.formula("WeightLoss12Month ~ WeightLoss4Month")
+SummaryNoNA <- subset(SummaryWeeks1to4.data, !is.na(SummaryWeeks1to4.data[, "WeightLoss4Month"]))
+rslts12Months4Months <- linearCV(SummaryNoNA, "WeightLoss12Month", 5, mymodel, "Only 4 Month Weight Loss")
+
+```
+
+```{r, include= FALSE}
+
+#Initialize accuracy summary table
+tblAccuracy8Weeks <- data.frame(matrix(ncol = 6, nrow = 4))
+rownames(tblAccuracy8Weeks) <- c("Baseline variables (i.e., age and treatment assignment)",
+                             "App-usage (PC1) + App-calories (PC2) + Self-weighing frequency",
+                             "Baseline variables + App-usage (PC1) + App-calories (PC2) + Self-weighing frequency",
+                             "4- Month weight")
+colnames(tblAccuracy8Weeks) <- c("R-squared", "rho", "mAUC",
+                                 "R-squared", "rho", "mAUC")
+rndDigits <- 4
+
+# Only Baseline
+r <- 1
+tblAccuracy8Weeks[r,1] <- round(rslts4Months8Weeks$tradNoPCA$rsquared, digits = rndDigits)
+tblAccuracy8Weeks[r,2] <- round(rslts4Months8Weeks$tradNoPCA$rho, digits = rndDigits)
+tblAccuracy8Weeks[r,3] <- round(rslts4Months8Weeks$tradNoPCA$mAUC, digits = rndDigits)
+
+tblAccuracy8Weeks[r,4] <- round(rslts12Months8Weeks$tradNoPCA$rsquared, digits = rndDigits)
+tblAccuracy8Weeks[r,5] <- round(rslts12Months8Weeks$tradNoPCA$rho, digits = rndDigits)
+tblAccuracy8Weeks[r,6] <- round(rslts12Months8Weeks$tradNoPCA$mAUC, digits = rndDigits)
+
+# No Baseline
+r <- 2
+tblAccuracy8Weeks[r,1] <- round(rslts4Months8Weeks$appPCA$rsquared, digits = rndDigits)
+tblAccuracy8Weeks[r,2] <- round(rslts4Months8Weeks$appPCA$rho, digits = rndDigits)
+tblAccuracy8Weeks[r,3] <- round(rslts4Months8Weeks$appPCA$mAUC, digits = rndDigits)
+
+tblAccuracy8Weeks[r,4] <- round(rslts12Months8Weeks$appPCA$rsquared, digits = rndDigits)
+tblAccuracy8Weeks[r,5] <- round(rslts12Months8Weeks$appPCA$rho, digits = rndDigits)
+tblAccuracy8Weeks[r,6] <- round(rslts12Months8Weeks$appPCA$mAUC, digits = rndDigits)
+
+# All
+r <- 3
+tblAccuracy8Weeks[r,1] <- round(rslts4Months8Weeks$tradAppPCA$rsquared, digits = rndDigits)
+tblAccuracy8Weeks[r,2] <- round(rslts4Months8Weeks$tradAppPCA$rho, digits = rndDigits)
+tblAccuracy8Weeks[r,3] <- round(rslts4Months8Weeks$tradAppPCA$mAUC, digits = rndDigits)
+
+tblAccuracy8Weeks[r,4] <- round(rslts12Months8Weeks$tradAppPCA$rsquared, digits = rndDigits)
+tblAccuracy8Weeks[r,5] <- round(rslts12Months8Weeks$tradAppPCA$rho, digits = rndDigits)
+tblAccuracy8Weeks[r,6] <- round(rslts12Months8Weeks$tradAppPCA$mAUC, digits = rndDigits)
+
+# 4-month weight change
+r <- 4
+tblAccuracy8Weeks[r,4] <- round(rslts12Months4Months$rsquared, digits = rndDigits)
+tblAccuracy8Weeks[r,5] <- round(rslts12Months4Months$rho, digits = rndDigits)
+tblAccuracy8Weeks[r,6] <- round(rslts12Months4Months$mAUC, digits = rndDigits)
+
+```
+
+```{r, echo = FALSE}
+
+tblAccuracy8Weeks %>%
+kable(col.names = c("$R^2$", "$\\rho$","mAUC","$R^2$","$\\rho$", "mAUC"), booktabs = TRUE) %>%
+  kable_styling(c("striped")) %>%
+ 
+  add_header_above(c("Model" =1,"4-month prediction" = 3, "12-month prediction" = 3))
+  
+
+```
+
+
+
+## Linear Regression on First 8 Weeks predicting 4 Month Weight Loss with PCA App vars and baseline
+
+```{r, include=FALSE}
+  myvars <- names(SummaryWeeks1to8.data) %in% c("Treatment", "Age", "NumWeigh") 
+  appData <- SummaryWeeks1to8.data[!myvars]
+
+reg.data <- GetLosePCA4(appData, 8, 3, graph = FALSE)
+
+Allreg.data <- cbind(reg.data$pca.individual, SummaryWeeks1to8.data[myvars])
+
+linearReg4m8w <- lm(-WeightLoss4Month ~ Dim.1 + Dim.2 + Treatment + Age + NumWeigh, Allreg.data)
+rsltsLm4m8w <- summary(linearReg4m8w)
+
+linearReg4m8w3PC <- lm(-WeightLoss4Month ~ Dim.1 + Dim.2 + Dim.3 + Treatment + Age + NumWeigh, Allreg.data)
+rsltsLm4m8w3PC <- summary(linearReg4m8w3PC)
+
+```
+
+### Linear regression results predicting 4-month weight loss with 8-week data
+
+```{r, echo=FALSE}
+
+rndDigits <- 5
+tblLm4Months8Weeks <- as.data.frame(round(rsltsLm4m8w$coefficients, digits = rndDigits))
+
+rownames(tblLm4Months8Weeks) <- c("Intercept",
+                             "App-usage (PC1)",
+                             "App-calories (PC2)",
+                             "Treatment Assignment",
+                             "Age",
+                             "Self-weighing frequency at 8 weeks")
+
+tblLm4Months8Weeks %>%
+kable(col.names = c("$\\beta$", "SE","$t$","$P$"), booktabs = TRUE) %>%
+  kable_styling(c("striped")) 
+
+```
+### Linear regression results predicting 4-month weight loss with 8-week data including App-exercise (PC3)
+
+The results indicates that the app-exercise component is not significant. 
+
+```{r, echo=FALSE}
+
+rndDigits <- 5
+tblLm4Months8Weeks3PC <- as.data.frame(round(rsltsLm4m8w3PC$coefficients, digits = rndDigits))
+
+rownames(tblLm4Months8Weeks3PC) <- c("Intercept",
+                             "App-usage (PC1)",
+                             "App-calories (PC2)",
+                             "App-exercise (PC3)",
+                             "Treatment Assignment",
+                             "Age",
+                             "Self-weighing frequency at 8 weeks")
+
+tblLm4Months8Weeks3PC %>%
+kable(col.names = c("$\\beta$", "SE","$t$","$P$"), booktabs = TRUE) %>%
+  kable_styling(c("striped")) 
+
+```
+
+## Linear Regression on First 8 Weeks predicting 12 Month Weight Loss with PCA App vars and baseline
+
+```{r, include=FALSE}
+myvars <- names(SummaryWeeks1to8.data) %in% c("Treatment", "Age", "NumWeigh") 
+appData <- SummaryWeeks1to8.data[!myvars]
+
+responseVars <- names(appData) %in% c("id", "WeightLoss12Month", "WeightLoss4Month", "Class4Month", "Class12Month")  
+appDataFiltered <- appData[!responseVars]
+  
+reg.data <- GetLosePCA12(appData, 8, 3, graph = FALSE)
+
+Allreg.data <- cbind(reg.data$pca.individual, SummaryWeeks1to8.data[myvars])
+
+linearReg12m8w <- lm(-WeightLoss12Month ~ Dim.1 + Dim.2 + Treatment + Age + NumWeigh, Allreg.data)
+rsltsLm12m8w <- summary(linearReg12m8w)
+
+linearReg12m8w3PC <- lm(-WeightLoss12Month ~ Dim.1 + Dim.2 + Dim.3 + Treatment + Age + NumWeigh, Allreg.data)
+rsltsLm12m8w3PC <- summary(linearReg12m8w3PC)
+
+
+```
+
+The following table presents the linear regression results predicting 12-month weight loss with 8-week data.
+
+```{r, echo=FALSE}
+
+rndDigits <- 5
+tblLm12Months8Weeks <- as.data.frame(round(rsltsLm12m8w$coefficients, digits = rndDigits))
+
+rownames(tblLm12Months8Weeks) <- c("Intercept",
+                             "App-usage (PC1)",
+                             "App-calories (PC2)",
+                             "Treatment Assignment",
+                             "Age",
+                             "Self-weighing frequency at 8 weeks")
+
+tblLm12Months8Weeks %>%
+kable(col.names = c("$\\beta$", "SE","$t$","$P$"), booktabs = TRUE) %>%
+  kable_styling(c("striped")) 
+
+```
+
+
+
+
+
+
+
+

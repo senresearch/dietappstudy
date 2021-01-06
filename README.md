@@ -14,4 +14,4 @@ The directory contains the supporting code necessary to run the analysis contain
 
 Farage, G., Gale1, C., Kocak, M., Klesges, R.C., Talcott, G.W., Richey, P., Hare, M., Johnson, K., Sen, S., Krukowski, R.A. (2021) *Assessing the contribution of self-monitoring through a commercial weight loss app: mediation and predictive modeling.*
 
-The directory contains an R markdown file that can reproduce the figures in the manuscript.
+The directory `src` contains the code files that can reproduce the figures in the manuscript. The file `description.Rmd` generates the descriptive demographic table and frequency logging figure in the sub-directory' prediction'. The `prediction.Rmd` file produces the principal component analysis results, the accuracy 8-weeks models tables, and the linear regression coefficients tables. The `mediation` sub-directory contains the Jupyter notebooks that generate the results for the mediation analysis. They include the missing data's sensitivity results using two different imputations methods: the last observation carried forward analysis, and the baseline observation carried forward analysis for the 4-month and 12-month weight loss. 
