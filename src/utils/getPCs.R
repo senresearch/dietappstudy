@@ -1,7 +1,5 @@
-
 # File: getPCs.R
 # Author: Gregory Farage
-# Date: March 2019
 #----------
 
 

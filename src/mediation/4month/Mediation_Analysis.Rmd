@@ -67,10 +67,6 @@ dat <- getData(pathFile, numFile)
 names(dat)
 ```
 
-```{r}
-t.test(Age~Treatment, data = dat)
-```
-
 ### Data description
 
 <!-- #region -->
@@ -78,20 +74,20 @@ The data variables used in our mediation analysis are described as follows:
 * *Treatment* is the treatment assignment variable, where it equals 0 for self-paced subjects and 1 for counselor-initiated subjects.  
 
 * *WeightLoss4Month* is a log-ratio indicating the rate of weight change at four months with respect to the baseline weight. If the value is positive, it indicates a weight loss; if it is negative, it corresponds to gain, and 0 indicates no change between 4 months and baseline.
-* The potential mediators that we plan to analyze are the *self-weighing* variable and the principal components derived from the electronically collected variables' PCA. The logging variables quantify logging behavior in a number of days, and the caloric variables assess caloric intake and output. The logging and caloric variables are estimated over 4 months for the 4-month mediation analysis and 12 months for the 12-month mediation analysis. The average caloric variables quantify the sum of the calories divided by the total number of logged days. For example, *AvgBreakfastCal* equals the sum of intake calories reported at breakfast divided by the total number of days when breakfast was logged.
+* The potential mediators that we plan to analyze are the *self-weighing* variable and the principal components derived from the electronically collected variables' PCA. The logging variables quantify logging behavior in a number of days, and the caloric variables assess caloric intake and output. The logging and caloric variables are estimated over 4 months for the 4-month mediation analysis and 12 months for the 12-month mediation analysis. The average caloric variables quantify the sum of the calories divided by the total number of logged days. For example, *AverageDailyBreakfastCalories* equals the sum of intake calories reported at breakfast divided by the total number of days when breakfast was logged.
 
    
-| Logging            | Caloric         |
-|--------------------|-----------------|
-| NumWeekendDays     | AvgTotalCal     | 
-| NumWeekdayDays     | AvgExerciseCal  |
-| TotalEntries       | AvgBreakfastCal |
-| TotalFoodDays      | AvgLunchCal     |
-| TotalExerciseDays  | AvgDinnerCal    |
-| TotalBreakfastDays | AvgSnackCal     |
-| TotalLunchDays     |                 |
-| TotalDinnerDays    |                 |
-| TotalSnackDays     |                 |
+| Logging            | Caloric                       |
+|--------------------|-------------------------------|
+| LoggedWeekendDays  | AverageDailyIntakeCalories    | 
+| LoggedWeekDays     | AverageDailyExerciseCalories  |
+| TotalLoggedDays    | AverageDailyBreakfastCalories |
+| TotalFoodDays      | AverageDailyLunchCalories     |
+| TotalExerciseDays  | AverageDailyDinnerCalories    |
+| TotalBreakfastDays | AverageDailySnackCalories     |
+| TotalLunchDays     |                               |
+| TotalDinnerDays    |                               |
+| TotalSnackDays     |                               |
 
 
 <!-- #endregion -->
@@ -107,9 +103,12 @@ Applying a PCA (principal component analysis) reduces the number of variables an
 
 ```{r}
 # Select the variable indexes to include in the Principal Component Analysis
-myCols <-c("NumWeekendDays","NumWeekdayDays", "TotalEntries", "TotalFoodDays", "TotalExerciseDays",
-          "TotalBreakfastDays", "TotalLunchDays", "TotalDinnerDays", "TotalSnackDays", "AvgTotalCal", 
-           "AvgExerciseCal", "AvgBreakfastCal", "AvgLunchCal", "AvgDinnerCal", "AvgSnackCal")
+myCols <-c("LoggedWeekDays", "LoggedWeekendDays", "TotalLoggedDays","TotalFoodDays",
+            "TotalExerciseDays", 
+            "TotalBreakfastDays", "TotalLunchDays", "TotalDinnerDays", "TotalSnackDays",
+            "AverageDailyIntakeCalories", "AverageDailyExerciseCalories", 
+            "AverageDailyBreakfastCalories",
+            "AverageDailyLunchCalories", "AverageDailyDinnerCalories","AverageDailySnackCalories")
 # Get the indexes of those variables
 idxApp <- match(myCols, colnames(dat))
 ```
@@ -144,17 +143,17 @@ print(names(dat))
 # resPC contains also the scree plot{scree.plot}, cumulative variance explained {CV.plot}, 
 # the variables contribution of each component {contribCorr.plot()} and the quality of those 
 # contributions {cos2Corr.plot()}.
-options(repr.plot.width = 15, repr.plot.height = 5)
+options(repr.plot.width = 10, repr.plot.height = 5)
 resPC$CV.plot
 ```
 
 ```{r}
-options(repr.plot.width = 15, repr.plot.height = 7)
+options(repr.plot.width = 10, repr.plot.height = 7)
 resPC$contribCorr.plot(1.5) # to get numbers use resPC$contribCorrNum.plot()
 ```
 
 ```{r}
-options(repr.plot.width = 15, repr.plot.height = 7)
+options(repr.plot.width = 10, repr.plot.height = 7)
 resPC$cos2Corr.plot(1.5) # to get numbers use resPC$cos2CorrNum.plot()
 ```
 
@@ -163,7 +162,7 @@ resPC$cos2Corr.plot(1.5) # to get numbers use resPC$cos2CorrNum.plot()
 
 
 The first step of the mediation analysis is to establish if our candidates variables are mediators or not.    
-**To analyze the mediation we observe the following flowchart:**
+**To analyze the mediation we observe the following flowchart, where Y is the independent variable, X is the dependent variable, and M is the mediator:**
 
 ![alt text](images/Mediation_flowchart.svg "Mediation Analysis flowchart")
 
@@ -198,7 +197,7 @@ summary(out.fit)
 
 ```{r}
 options(repr.plot.width = 10, repr.plot.height = 5)
-getPermut(dat$WeightLoss4Month, dat$Treatment, P = 10000)
+getPermut(dat$WeightLoss4Month, dat$Treatment, P = 10000, IVname = "Weight Loss")
 ```
 
 ***We confirmed that the treatment has a statistically significant predictive capability on weight loss outcome.***
@@ -215,7 +214,7 @@ summary(out.fit)
 #### **Permutation test: App-usage ~ treatment assignment**
 
 ```{r}
-getPermut(dat$App1, dat$Treatment, P = 10000)
+getPermut(dat$App1, dat$Treatment, P = 10000, IVname = "App-usage")
 ```
 
 #### **Regression of App-calories (*i.e.*, PC2 ) on the treatment.**
@@ -229,7 +228,7 @@ summary(out.fit)
 #### **Permutation test: App-calories ~ treatment assignment**
 
 ```{r}
-getPermut(dat$App2, dat$Treatment, P = 10000)
+getPermut(dat$App2, dat$Treatment, P = 10000, IVname = "App-calories")
 ```
 
 #### **Regression of App-exercise (*i.e.*, PC3 ) on the treatment.**
@@ -243,8 +242,11 @@ summary(out.fit)
 #### **Permutation test: App-exercise ~ treatment assignment**
 
 ```{r}
-getPermut(dat$App3, dat$Treatment, P = 10000)
+getPermut(dat$App3, dat$Treatment, P = 10000, IVname = "App-exercise")
 ```
+
+From the regression model and from the permutation test, we observe that the effect of the treatment assignment on the App-exercise is not significant (0.73). Since an effect of treatment assignment onto the mediator is a prerequisite for mediation being possible, app-exercice variable is not eligible to be considered as a mediator.
+
 
 #### **Regression of Self-weight on the treatment.**
 
@@ -254,10 +256,10 @@ out.fit <- lm(NumWeigh ~ Treatment + Age, data = dat)
 summary(out.fit)
 ```
 
-#### **Permutation test: Self-weight ~ treatment assignment**
+#### **Permutation test: Self-weighing ~ treatment assignment**
 
 ```{r}
-getPermut(dat$NumWeigh, dat$Treatment, P = 10000)
+getPermut(dat$NumWeigh, dat$Treatment, P = 10000, IVname = "Self-weighing")
 ```
 
 ***We confirmed that the treatment has a statistically significant predictive capability on all potential mediators except for the app-exercise. Since app-usage variable (i.e., PC1) explained more than 55% of the variance, we considered only app-usage and self-weight variables for the mediation analysis for the 4 month-weight loss.***
@@ -294,6 +296,8 @@ rslts$med.tbl %>%
 ```{r}
 # Sensitivity for the app-usage
 sensApp.out <- medsens(rslts$med.rslts$medApp.out, rho.by = 0.01, effect.type = "indirect", sims = 10000)
+# Sensitivity for the app-calories
+sensCal.out <- medsens(rslts$med.rslts$medCal.out, rho.by = 0.01, effect.type = "indirect", sims = 10000)
 # Sensitivity for the self-weight
 sensNumW.out <- medsens(rslts$med.rslts$medNumW.out, rho.by = 0.01, effect.type = "indirect", sims = 10000)
 ```
@@ -316,7 +320,7 @@ plot(sensApp.out,  ylim = c(-0.18, 0.18), main  =  expression(paste("App-usage A
 
 The above figure shows the estimated true values of ACMEs as a function of the sensitivity parameter $\rho$. The parameter $\rho$
 expresses the correlation between the error terms in the mediator and the outcome models. The solid thick line and its shaded area represent the ACME's point estimates and their 90% confidence intervals, respectively.    
-According to this analysis, the ACME is estimated to be negative when  $\rho$ is larger than 0.34, and the ACME is statistically indistinguishable from zero at the 90% level when the parameter $\rho$ is larger than 0.23.
+According to this analysis, the ACME is estimated to be negative when  $\rho$ is larger than 0.34, and the ACME is statistically indistinguishable from zero at the 90% level when the parameter $\rho$ is larger than 0.23 and less than 0.44.
 
 
 #### Sensitivity with respect to proportion of variance explained
@@ -326,9 +330,40 @@ plot(sensApp.out, sens.par = "R2", r.type = "total", sign.prod = "positive",
      xlim = c(-0.0, 0.6), ylim = c(-0.0, 0.7))
 ```
 
-In the sensitivity analyses plot above, the ACME estimates are plotted against $\tilde{R}^2_Y \tilde{R}^2_M$, the proportions of the total variance in the outcome and mediator variables, respectively, that would be explained by a hypothetical unobserved pretreatment confounder.
-In terms of the coefficient of determination parameters, the product of $\tilde{R}^2_M$ and $\tilde{R}^2_Y$ must be at least as large
-as 0.0518, implying that an unobserved pretreatment confounder must explain 20% of the variation in the participants’ app-usage and 25.6% of the variation in their weight loss, for example.
+In the sensitivity analyses plot above, the ACME estimates are plotted as contour lines against $\tilde{R}^2_Y \tilde{R}^2_M$, the proportions of the total variance in the outcome and mediator variables, respectively, that would be explained by a hypothetical unobserved pretreatment confounder.
+The bold line represents the various product combinations in terms of the coefficient of determination where the ACME would become 0. In this case, the estimated ACME will be 0 if the product of $\tilde{R}^2_M$ and $\tilde{R}^2_Y$ is 0.0518. For example, this implies that an unobserved pretreatment confounder would explain 20% of the variation in the participants’ app-usage and 25.6% of the variation in their weight loss.
+
+
+### App-calories
+
+
+#### Results
+
+```{r}
+summary(sensCal.out)
+```
+
+#### Sensitivity with respect to error correlation
+
+```{r}
+options(repr.plot.width = 10, repr.plot.height = 7)
+plot(sensCal.out,  ylim = c(-0.18, 0.18), main  =  expression(paste("App-calories ACME(", rho, ")")))
+```
+
+The above figure shows the estimated true values of ACMEs as a function of the sensitivity parameter $\rho$. The parameter $\rho$
+expresses the correlation between the error terms in the mediator and the outcome models. The solid thick line and its shaded area represent the ACME's point estimates and their 90% confidence intervals, respectively.    
+According to this analysis, the ACME is estimated to be negative when  $\rho$ is larger than -0.18, and the ACME is statistically indistinguishable from zero at the 90% level when the parameter $\rho$ is larger than -0.31 and less than -0.04.
+
+
+#### Sensitivity with respect to proportion of variance explained
+
+```{r}
+plot(sensCal.out, sens.par = "R2", r.type = "total", sign.prod = "positive",
+     xlim = c(-0.0, 0.9), ylim = c(-0.0, 0.8))
+```
+
+In the sensitivity analyses plot above, the ACME estimates are plotted as contour lines against $\tilde{R}^2_Y \tilde{R}^2_M$, the proportions of the total variance in the outcome and mediator variables, respectively, that would be explained by a hypothetical unobserved pretreatment confounder.
+The bold line represents the various product combinations in terms of the coefficient of determination where the ACME would become 0. In this case, the estimated ACME will be 0 if the product of $\tilde{R}^2_M$ and $\tilde{R}^2_Y$ is 0.0234. For example, this implies that an unobserved pretreatment confounder would explain 20% of the variation in the participants’ app-calories and 11.7% of the variation in their weight loss.
 
 
 ### Self-weight
@@ -348,7 +383,7 @@ plot(sensNumW.out,  ylim = c(-0.18, 0.18), main  =  expression(paste("Self-weigh
 
 The above figure shows the estimated true values of ACMEs as a function of the sensitivity parameter $\rho$. The parameter $\rho$
 expresses the correlation between the error terms in the mediator and the outcome models. The solid thick line and its shaded area represent the ACME's point estimates and their 90% confidence intervals, respectively.    
-According to this analysis, the ACME is estimated to be negative when  $\rho$ is larger than 0.38, and the ACME is statistically indistinguishable from zero at the 90% level when the parameter $\rho$ is larger than 0.27.
+According to this analysis, the ACME is estimated to be negative when  $\rho$ is larger than 0.38, and the ACME is statistically indistinguishable from zero at the 90% level when the parameter $\rho$ is larger than 0.27 and less than 0.48.
 
 
 ### Sensitivity with respect to proportion of variance explained
@@ -360,11 +395,17 @@ plot(sensNumW.out, sens.par = "R2", r.type = "total", sign.prod = "positive",
 
 In the sensitivity analyses plot above, the ACME estimates are plotted against $\tilde{R}^2_Y \tilde{R}^2_M$, the proportions of the total variance in the outcome and mediator variables, respectively, that would be explained by a hypothetical unobserved pretreatment confounder.
 In terms of the coefficient of determination parameters, the product of $\tilde{R}^2_M$ and $\tilde{R}^2_Y$ must be at least as large
-as 0.0718, implying that an unobserved pretreatment confounder must explain 20% of the variation in the participants’ app-usage and 35.9% of the variation in their weight loss, for example.
+as 0.0718, implying that an unobserved pretreatment confounder must explain 20% of the variation in the participants’ self-weighing and 35.9% of the variation in their weight loss, for example.
 
 
 ## Conclusion
 
 
 Overall, the results suggest that under the assumption of independence between mechanisms, the causal mediation effects are positive and
-moderately statistically significant, and the estimates are fairly robust to the possible unobserved pretreatment mediator–outcome confounding to varying degrees.
+moderately statistically significant, and the estimates are fairly robust to the possible unobserved pretreatment mediator–outcome confounding to varying degrees for the app-usage and self-weighing. However, it appears that the mediation of the app-calories is much less robust to the possible unobserved pretreatment mediator–outcome confounding. 
+
+```{r}
+sessionInfo()
+```
+
+# 

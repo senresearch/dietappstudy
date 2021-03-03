@@ -1,6 +1,5 @@
 # File: imputeBOCF.R
 # Author: Gregory Farage
-# Date: October 2020
 # ----------
 
 

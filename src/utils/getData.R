@@ -1,6 +1,5 @@
 # File: getData.R
 # Author: Gregory Farage
-# Date: March 2019
 #----------
 
 
@@ -36,11 +35,11 @@ getData <- function(dirInput, i) {
     dfData$WeightLoss12Month <- -dfData$WeightLoss12Month
     
     # Change sign for intake calorie so that: intake calories are negative and burnt calories are positive 
-    dfData$AvgTotalCal <- -dfData$AvgTotalCal
-    dfData$AvgBreakfastCal <- -dfData$AvgBreakfastCal
-    dfData$AvgLunchCal <- -dfData$AvgLunchCal
-    dfData$AvgDinnerCal <- -dfData$AvgDinnerCal
-    dfData$AvgSnackCal <- -dfData$AvgSnackCal
+    dfData$AvgTotalCal <- -dfData$AverageDailyIntakeCalories
+    dfData$AvgBreakfastCal <- -dfData$AverageDailyBreakfastCalories
+    dfData$AvgLunchCal <- -dfData$AverageDailyLunchCalories
+    dfData$AvgDinnerCal <- -dfData$AverageDailyDinnerCalories
+    dfData$AvgSnackCal <- -dfData$AverageDailySnackCalories
         
     return(dfData)
 }

@@ -114,11 +114,11 @@ Participants of the Fit Blue study, a weight loss study implemented at the Lackl
 ## Demographics
 
 All particpants in the study were on active duty in the military and had to have at least one year left at the Air Force base so that they would likely be available in person for the 4 and 12 month follow-ups. The requirements for participation were as follows: 18 years or older, BMI greater or equal to 25.0, access to computer and email, and cleared to participate by a healthcare provider.
-      
+
 
 There were 212 total participants in this study. Only 191 records were successfully pulled from the Lose It! database.
 
-```{r, echo = FALSE}
+```{r echo=FALSE}
 # Create data frame for demographics
 inputFile <- paste("../../data/ScreeningBMI.csv", sep = "")
 # Read input file ignoring all single quotes
@@ -263,7 +263,7 @@ ggplot(logins.weekly.all, aes(x = Week)) +
 
 Trends within treatment groups are apparent. Counselor-Initiated groups have similar login habits in the first 4 weeks while Self-Paced groups have more similar login habits regardless of Success. Logins are just starting to decrease in the unsuccessful Counselor-Initiated group in the fourth week which led us to believe there may be a reason to explore the first 8 weeks of the study. Another point to note is that consistent logins in the first 4 weeks didn't seem to be a predictor of successful weight loss for Self-Paced people.
 
-```{r, echo = FALSE}
+```{r echo=FALSE}
 #Create a data frame with average calories and number of logins per week for each ID number
 
 weeks4 <- processed.data %>%
@@ -319,7 +319,7 @@ ggplot(allWeeks, aes(x = factor(Week), fill = NumOfEntries)) +
 
 * The Counselor-Initiated unsuccessful group remained high in logins but there was more variability in the number of logins between weeks.
 
-```{r, echo = FALSE}
+```{r echo=FALSE}
 #Create a data frame with average calories and number of logins per week for each ID number
 
 weeks8 <- processed.data %>%
@@ -374,11 +374,11 @@ ggplot(allWeeks, aes(x = factor(Week), fill = NumOfEntries)) +
 #Save as .png
 # ggsave("NumOfEntries.png", width = 6, height = 3.5,units="in", dpi=600)
 ```
-   
-   
+
+
 ## Number of Login Days in 4 months
-   
-```{r, echo = FALSE}
+
+```{r echo=FALSE}
 #Create a data frame with average calories and number of logins per week for each ID number
 
 weeks16 <- processed.data %>%

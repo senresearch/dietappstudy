@@ -1,6 +1,5 @@
 # File: demofunc.R
 # Author: Courtney Gale
-# Date: October 2020
 # ----------
 
 demo <- function(demographic, characteristic) {

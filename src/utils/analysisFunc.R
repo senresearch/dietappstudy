@@ -1,6 +1,5 @@
 # File: analysisFunc.R
 # Author: Courtney Gale, Gregory Farage
-# Date: October 2020
 # ----------
 
 

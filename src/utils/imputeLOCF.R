@@ -1,6 +1,5 @@
 # File: imputeLOCF.R
 # Author: Gregory Farage
-# Date: October 2020
 # ----------
 
 

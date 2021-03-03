@@ -1,6 +1,5 @@
 # File: getPermut.R
 # Author: Gregory Farage
-# Date: September 2020
 # Reference: https://statslectures.com/r-scripts-datasets 
 #----------
 
@@ -18,7 +17,7 @@
 # Returns:
 # - dfData             Data frame     Contains data frame of lose-it data ready for analysis
 
-getPermut <- function(feat, pop, P = 100000){
+getPermut <- function(feat, pop, P = 100000, IVname = "Y"){
     # Set seed for reproducability of results
     set.seed(1234) 
     
@@ -27,12 +26,12 @@ getPermut <- function(feat, pop, P = 100000){
     
     # Display violin plot
     vioplot(split(feat ,pop),
-            main="Weight Loss",
-            xlab="Treatment",ylab="Weight loss",drawRect=FALSE,
+            main= IVname, #"Weight Loss",
+            xlab="Treatment",ylab= IVname, drawRect=FALSE,
             col = myColors)
     
     # Get reference T-test statistic 
-    testStat <- testTstat(feat, pop, T)
+    testStat <- testTstat(feat, pop, T, IVname)
     
     # Number of permutation samples
     cat("Number of permutation sample:", P, "\n")
@@ -87,7 +86,7 @@ getPermut <- function(feat, pop, P = 100000){
 # - testRslt          Numeric       Contains T-test stat
 
 
-testTstat <- function(feat, pop, rslt = F){
+testTstat <- function(feat, pop, rslt = F, varName = "var Y"){
     # calculate the difference in sample MEANS
     meanPop1 <- mean(feat[pop==1])    
     meanPop0 <- mean(feat[pop==0])    
@@ -96,8 +95,8 @@ testTstat <- function(feat, pop, rslt = F){
     testRslt <- abs((t.test(feat ~ pop))$statistic)
         
     if (rslt) {
-        cat("The mean weight loss for intervention is:", meanPop1, "\n")
-        cat("The mean weight loss for no intervention is:", meanPop0, "\n")
+        cat("The mean", varName ,"for intervention is:", meanPop1, "\n")
+        cat("The mean", varName ,"for no intervention is:", meanPop0, "\n")
         cat("The absolute t-test statistic is: ", testRslt, "\n")
     }
     
