@@ -193,8 +193,10 @@ df <- demo.summary1[-10,-3]
 df[,1] <- as.numeric(df[,1])
 df[,2] <- as.numeric(df[,2])
 df$Total <- df[,1] + df[,2]
-df$CIperc<- round(100*(df[,1]/df$Total),1)
-df$SIperc<- round(100*(df[,2]/df$Total),1)
+# create total for each group counseled versus initiated 
+# per category of social demographic category
+df$CIperc<- round(100*(df[,1]/dim(demographicsCI)[1]),1)
+df$SIperc<- round(100*(df[,2]/dim(demographicsSI)[1]),1)
 
 # calculate P-value
 chsqtestGender <- chisq.test(x = df[1:2,c(1,2)])
