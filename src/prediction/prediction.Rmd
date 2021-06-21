@@ -1,15 +1,18 @@
 ---
 title: "Weight loss predictions through linear regression"
-output:   
+output:
   html_document:
     fig_width: 10
     fig_height: 8
-    toc: true
+    toc: yes
     toc_depth: 2
-    toc_float: true
-    number_sections: true
-    smooth_scroll: true
+    toc_float: yes
+    number_sections: yes
+    smooth_scroll: yes
     theme: cerulean
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
 ---
 
 ```{r setup, include=FALSE}
@@ -117,14 +120,17 @@ Our outcome variables of weight change at 4 and 12 months were modeled as the lo
 ## PCA Results
 
 Variables used to conduct PCA:   
-•	NumWeekdayDays and NumWeekendDays: the numbers of weekdays and weekend days, respectively, that include at least one entry for food, beverage, exercise, or weight.  
-•	TotalEntries: the total number of days with at least one entry for food, beverage, exercise, or weight.  
-•	TotalFoodDays: the total number of days where at least one food or beverage entry was made.   
-•	TotalExerciseDays: the total number of days where at least one entry for exercise was made.   
-•	TotalBreakfastDays, TotalLunchDays, TotalDinnerDays, and TotalSnackDays: the total number of days where at least one entry was made for breakfast, lunch, dinner, and snack, respectively.  
-•	AvgTotalCal: the average daily intake calories from food over the total number of days where at least one food entry was made.   
-•	AvgExerciseCal: the average daily calories burned through exercise over the total number of days where at least one entry for exercise was made.   
-•	AvgBreakfastCal, AvgLunchCal, AvgDinnerCal, and AvgSnackCal: the average daily calorie intakes over the total number of days where at least one entry was made for breakfast, lunch, dinner, and snack, respectively.    
+•	LoggedWeekDays and LoggedWeekendDays are the number of weekdays and weekend days, respectively, that include at least one entry for food, beverage, exercise, or weight.
+•	TotalLoggedDays is the total number of days with at least one entry for food, beverage, exercise, or weight.
+•	TotalFoodDays is the total number of days with at least one food or beverage entry was made.
+•	TotalExerciseDays is the total number of days with at least one entry for exercise was made.
+•	TotalBreakfastDays, TotalLunchDays, TotalDinnerDays, and TotalSnackDays are the total number of days with at least one entry for breakfast, lunch, dinner, and snack, respectively.
+•	AverageDailyIntakeCalories is the average daily intake of calories from food over the total number of days withwhere at least one food entry. The entries for daily calories that exceeded an upper bound (i.e., 4000 kcal for women and 5000 kcal for men) and lower bound (i.e., 600 kcal for women  and 800 kcal for men) were excluded for implausibility.
+•	AverageDailyExerciseCalories is the average daily calories burned through exercise over the total number of days with at least one entry for exercise.
+•	AverageDailyBreakfastCalories, AverageDailyLunchCalories, AverageDailyDinnerCalories, and AverageDailySnackCalories are the average daily caloric intake values over the total number of days with at least one entry for breakfast, lunch, dinner, and snack, respectively.
+
+
+
 
 
 The 3 first principal components explains 82.2% of the variance.
@@ -169,6 +175,24 @@ p
 # Get correlation of variables and contribution information
 varPCA <- get_pca_var(rslt.pca)
 
+rownames(varPCA$cos2) <- c("LoggedWeekDays", "LoggedWeekendDays", "TotalLoggedDays","TotalFoodDays",
+                              "TotalExerciseDays", 
+                              "TotalBreakfastDays", "TotalLunchDays", "TotalDinnerDays", "TotalSnackDays",
+                              "AverageDailyIntakeCalories", "AverageDailyExerciseCalories", 
+                              "AverageDailyBreakfastCalories",
+                              "AverageDailyLunchCalories", "AverageDailyDinnerCalories","AverageDailySnackCalories")
+
+
+
+rownames(varPCA$contrib) <- c("LoggedWeekDays", "LoggedWeekendDays", "TotalLoggedDays","TotalFoodDays",
+                              "TotalExerciseDays", 
+                              "TotalBreakfastDays", "TotalLunchDays", "TotalDinnerDays", "TotalSnackDays",
+                              "AverageDailyIntakeCalories", "AverageDailyExerciseCalories", 
+                              "AverageDailyBreakfastCalories",
+                              "AverageDailyLunchCalories", "AverageDailyDinnerCalories","AverageDailySnackCalories")
+
+
+
 # Display the quality of representation of the variables on factor map
 options(repr.plot.width = 10, repr.plot.height = 5)
 colnames(varPCA$cos2) <- pcNames[1:numPCSrslts]
@@ -185,53 +209,36 @@ contribCorr.plot <- corrplot(t(varPCA$contrib), is.corr=FALSE,
                              #title = "Contribution of Variables",
                              mar=c(0,0,2,0))
 ```
-```{r}
-rownames(varPCA$contrib)
-```
 
 ```{r}
-rownames(varPCA$contrib) <- c("LoggedWeekDays", "LoggedWeekendDays", "TotalLoggedDays","TotalFoodDays",
-                              "TotalExerciseDays", 
-                              "TotalBreakfastDays", "TotalLunchDays", "TotalDinnerDays", "TotalSnackDays",
-                              "AverageDailyIntakeCalories", "AverageDailyExerciseCalories", 
-                              "AverageDailyBreakfastCalories",
-                              "AverageDailyLunchCalories", "AverageDailyDinnerCalories","AverageDailySnackCalories")
-png(file="qual.png", type = "cairo", width = 180, height = 130, units='mm', res = 300)
-cos2Corr.plot <- corrplot(t(varPCA$cos2), is.corr=FALSE, 
-                          #title = "Quality of Representation of Variables", 
-                           tl.cex = 1.2,
-                          mar=c(0,0,0,0))
-# Print individuals plot to a png file
-dev.off()
-```
 
-```{r}
-rownames(varPCA$contrib) <- c("LoggedWeekDays", "LoggedWeekendDays", "TotalLoggedDays","TotalFoodDays",
-                              "TotalExerciseDays", 
-                              "TotalBreakfastDays", "TotalLunchDays", "TotalDinnerDays", "TotalSnackDays",
-                              "AverageDailyIntakeCalories", "AverageDailyExerciseCalories", 
-                              "AverageDailyBreakfastCalories",
-                              "AverageDailyLunchCalories", "AverageDailyDinnerCalories","AverageDailySnackCalories")
-png(file="contrib.png", type = "cairo", width = 180, height = 130, units='mm', res = 300)
-contribCorr.plot <- corrplot(t(varPCA$contrib), is.corr=FALSE, 
-                             tl.cex = 1.2,
-                             #title = "Contribution of Variables",
-                             mar=c(0,0,0,0))
-# Print individuals plot to a png file
-dev.off()
-```
+# png(file="qual.png", type = "cairo", width = 180, height = 130, units='mm', res = 300)
+# cos2Corr.plot <- corrplot(t(varPCA$cos2), is.corr=FALSE, 
+#                           #title = "Quality of Representation of Variables", 
+#                            tl.cex = 1.2,
+#                           mar=c(0,0,0,0))
+# # Print individuals plot to a png file
+# dev.off()
+# 
+# png(file="contrib.png", type = "cairo", width = 180, height = 130, units='mm', res = 300)
+# contribCorr.plot <- corrplot(t(varPCA$contrib), is.corr=FALSE, 
+#                              tl.cex = 1.2,
+#                              #title = "Contribution of Variables",
+#                              mar=c(0,0,0,0))
+# # Print individuals plot to a png file
+# dev.off()
+# 
+# svg(filename="PCA_SVG.svg", 
+#     width=5, 
+#     height=8, 
+#     pointsize=12)
+# contribCorr.plot <- corrplot(t(varPCA$contrib), is.corr=FALSE, 
+#                              #title = "Contribution of Variables",
+# #                              tl.cex = 1.5,
+#                              mar=c(2,0,2,0))
+# # Print individuals plot to a png file
+# dev.off()
 
-```{r}
-svg(filename="PCA_SVG.svg", 
-    width=5, 
-    height=8, 
-    pointsize=12)
-contribCorr.plot <- corrplot(t(varPCA$contrib), is.corr=FALSE, 
-                             #title = "Contribution of Variables",
-#                              tl.cex = 1.5,
-                             mar=c(2,0,2,0))
-# Print individuals plot to a png file
-dev.off()
 ```
 
 PC1 represents mainly app variables describing the frequency with which participants utilized the app. We labelled PC1 “app-usage”. PC2 describes daily caloric intake that was self-monitored by participants. We labelled PC2 labelled “app-calories”.  PC3 represents participants’ exercise self-monitoring, thus we labelled PC3 “app-exercise”.
@@ -324,7 +331,7 @@ kable(col.names = c("$R^2$", "$\\rho$","mAUC","$R^2$","$\\rho$", "mAUC"), bookta
 ## Linear Regression on First 8 Weeks predicting 4 Month Weight Loss with PCA App vars and baseline
 
 ```{r include=FALSE}
-  myvars <- names(SummaryWeeks1to8.data) %in% c("Treatment", "Age", "NumWeigh") 
+  myvars <- names(SummaryWeeks1to8.data) %in% c("Treatment", "Age", "Gender", "logInitialWeight", "NumWeigh") 
   appData <- SummaryWeeks1to8.data[!myvars]
 
 reg.data <- GetLosePCA4(appData, 8, 3, graph = FALSE)

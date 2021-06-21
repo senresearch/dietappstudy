@@ -3,7 +3,7 @@
 # ----------
 
 demo <- function(demographic, characteristic) {
-  num <- sum(demographic == characteristic)
+   sum(demographic == characteristic)
 }
 
 percentdemo <- function(demographic, characteristic) {
