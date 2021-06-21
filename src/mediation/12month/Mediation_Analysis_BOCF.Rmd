@@ -6,7 +6,7 @@ jupyter:
       extension: .Rmd
       format_name: rmarkdown
       format_version: '1.2'
-      jupytext_version: 1.5.2
+      jupytext_version: 1.11.0
   kernelspec:
     display_name: R
     language: R
@@ -205,7 +205,7 @@ getPermut(dat$WeightLoss12Month, dat$Treatment, P = 10000, IVname = "Weight Loss
 ***We confirmed that the treatment has a statistically significant predictive capability on weight loss outcome.***
 
 
-#### **Regression of App-usage (*i.e.*, PC1 ) on the treatment.**
+#### Regression of App-use (*i.e.*, PC1 ) on the treatment.
 
 ```{r}
 # Outcome model with confounders
@@ -213,13 +213,13 @@ out.fit <- lm(App1 ~ Treatment + Age, data = dat)
 summary(out.fit)
 ```
 
-#### **Permutation test: App-usage ~ treatment assignment**
+#### **Permutation test: App-use ~ treatment assignment**
 
 ```{r}
-getPermut(dat$App1, dat$Treatment, P = 10000, IVname = "App-usage")
+getPermut(dat$App1, dat$Treatment, P = 10000, IVname = "App-use")
 ```
 
-#### **Regression of App-calories (*i.e.*, PC2 ) on the treatment.**
+#### Regression of App-calories (*i.e.*, PC2 ) on the treatment.
 
 ```{r}
 # Outcome model with confounders
@@ -233,7 +233,7 @@ summary(out.fit)
 getPermut(dat$App2, dat$Treatment, P = 10000, IVname = "App-calories")
 ```
 
-#### **Regression of App-exercise (*i.e.*, PC3 ) on the treatment.**
+#### Regression of App-exercise (*i.e.*, PC3 ) on the treatment.
 
 ```{r}
 # Outcome model with confounders
@@ -275,7 +275,7 @@ summary(out.fit)
 getPermut(dat$WeightLoss4Month, dat$Treatment, P = 10000, IVname = "4-month weight loss")
 ```
 
-***We confirmed that the treatment has a statistically significant predictive capability on all potential mediators except for the app-exercise. Since app-usage variable (i.e., PC1) explained more than 55% of the variance, we considered only app-usage, self-weight and the 4-month weight loss variables for the mediation analysis for the 12 month-weight loss.***
+***We confirmed that the treatment has a statistically significant predictive capability on all potential mediators except for the app-exercise. Since app-use variable (i.e., PC1) explained more than 55% of the variance, we considered only app-use, self-weight and the 4-month weight loss variables for the mediation analysis for the 12 month-weight loss.***
 
 
 ---
@@ -313,7 +313,7 @@ sens4Month.out <- medsens(rslts$med.rslts$med4Month.out, rho.by = 0.01, effect.t
 ```
 
 ```{r}
-# Sensitivity for the app-usage
+# Sensitivity for the app-use
 sensApp.out <- medsens(rslts$med.rslts$medApp.out, rho.by = 0.01, effect.type = "indirect", sims = 10000)
 # Sensitivity for the self-weight
 sensNumW.out <- medsens(rslts$med.rslts$medNumW.out, rho.by = 0.01, effect.type = "indirect", sims = 10000)
@@ -332,7 +332,7 @@ summary(sens4Month.out)
 
 ```{r}
 options(repr.plot.width = 10, repr.plot.height = 7)
-plot(sens4Month.out,  ylim = c(-0.18, 0.18), main  =  expression(paste("App-usage ACME(", rho, ")")))
+plot(sens4Month.out,  ylim = c(-0.18, 0.18), main  =  expression(paste("App-use ACME(", rho, ")")))
 ```
 
 The above figure shows the estimated true values of ACMEs as a function of the sensitivity parameter $\rho$. The parameter $\rho$
@@ -351,7 +351,7 @@ In the sensitivity analyses plot above, the ACME estimates are plotted against $
 The bold line represents the various product combinations in terms of the coefficient of determination where the ACME would become 0. In this case, the estimated ACME will be 0 if the product of $\tilde{R}^2_M$ and $\tilde{R}^2_Y$ is 0.1456. For example, this implies that an unobserved pretreatment confounder would explain 20% of the variation in the participants’ app-calories and 72.8% of the variation in their weight loss.
 
 
-### App-usage
+### App-use
 
 
 #### Results
@@ -364,7 +364,7 @@ summary(sensApp.out)
 
 ```{r}
 options(repr.plot.width = 10, repr.plot.height = 7)
-plot(sensApp.out,  ylim = c(-0.18, 0.18), main  =  expression(paste("App-usage ACME(", rho, ")")))
+plot(sensApp.out,  ylim = c(-0.18, 0.18), main  =  expression(paste("App-use ACME(", rho, ")")))
 ```
 
 The above figure shows the estimated true values of ACMEs as a function of the sensitivity parameter $\rho$. The parameter $\rho$
@@ -417,8 +417,8 @@ The bold line represents the various product combinations in terms of the coeffi
 ## Conclusion
 
 
-Overall, the results suggest that under the assumption of independence between mechanisms, the causal mediation effects are positive and not significant for the app-usage and it is significant for the self weight and for the 4-month weight loss mediator, and the estimates for the 4-month weight loss showed robustness to the
-possible unobserved pretreatment mediator–outcome confounding to varying degrees. However, the estimates for app-usage are not robust to the
+Overall, the results suggest that under the assumption of independence between mechanisms, the causal mediation effects are positive and not significant for the app-use and it is significant for the self weight and for the 4-month weight loss mediator, and the estimates for the 4-month weight loss showed robustness to the
+possible unobserved pretreatment mediator–outcome confounding to varying degrees. However, the estimates for app-use are not robust to the
 possible unobserved pretreatment mediator–outcome confounding to varying degrees. The results of the mediation analysis confirmed that there are no sufficient evidence to detect a mediation effect from the app-calories variable.   
 
 ```{r}

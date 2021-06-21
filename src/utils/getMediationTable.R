@@ -262,11 +262,11 @@ getMediationTable <- function(dat, numFile, myBoot = FALSE,
                          "ACME",  "Lower CI", "Upper CI",
                          "Prop. Mediated")
     if (numFile == 1){
-    rownames(med.tbl) <- c("App-usage", "App-Cal", "Self-weight")
+    rownames(med.tbl) <- c("App-use", "App-Cal", "Self-weight")
 
     } else {
 
-        rownames(med.tbl) <- c("App-usage", "App-Cal", "Self-weight", "4 Months Weight Loss")
+        rownames(med.tbl) <- c("App-use", "App-Cal", "Self-weight", "4 Months Weight Loss")
 
     } 
     
@@ -307,11 +307,11 @@ getMediationTable <- function(dat, numFile, myBoot = FALSE,
     sens.tbl <- as.data.frame(sens.tbl)
     names(sens.tbl)  <- c("Rho", "VarianceProduct")
     if (numFile == 1){
-    rownames(sens.tbl) <- c("App-usage", "App-Cal", "Self-weight")
+    rownames(sens.tbl) <- c("App-use", "App-Cal", "Self-weight")
 
     } else {
 
-        rownames(sens.tbl) <- c("App-usage", "App-Cal", "Self-weight", "4 Months Weight Loss")
+        rownames(sens.tbl) <- c("App-use", "App-Cal", "Self-weight", "4 Months Weight Loss")
 
     } 
     
