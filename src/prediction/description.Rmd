@@ -61,7 +61,7 @@ processed.data$Success <- factor(processed.data$Success)
 
 #Make Treatment a factor and change Treatment names
 processed.data$tx <- factor(processed.data$tx)
-levels(processed.data$tx) <- c("Counselor-Initiated", "Self-Paced")
+levels(processed.data$tx) <- c("Counselor-initiated", "Self-paced")
 
 # Get input files for Summary Weeks
 # Get input folder and data file
@@ -132,13 +132,13 @@ demographics <- new.data %>%
             Education = educcat[1], InitialBMI = bmi_sv[1], BMI_Group = getBMIGroup(bmi_sv[1]),
             tx = tx[1],.groups = 'drop')
 
-# Create data frame for demographics for Counselor-Initiated
+# Create data frame for demographics for Counselor-initiated
 demographicsCI <- demographics %>%
-  filter(tx == "Counselor-Initiated")
+  filter(tx == "Counselor-initiated")
 
-# Create data frame for demographics for Self-Paced
+# Create data frame for demographics for Self-paced
 demographicsSI <- demographics %>%
-  filter(tx == "Self-Paced") 
+  filter(tx == "Self-paced") 
 
 
 #Initialize demographic summary table
@@ -146,9 +146,9 @@ demo.summary1 <- data.frame(matrix(ncol = 3, nrow = 10))
 rownames(demo.summary1) <- c("Female", "Male", "African American", "Caucasian American", "Other", "Less than College",
                             "College or Above", "Overweight (BMI: 25-29.9)", 
                             "Obese (BMI: 30+)", "Age (mean, sd)")
-colnames(demo.summary1) <- c("Number of Participants CI", "Number of Participants SP", "Total(%)")
+colnames(demo.summary1) <- c("Counselor-initiated participants (n=103)", "Self-paced participants (n=88)", "Total(%)")
 
-#Percentage of characteristic in study total for Counselor-Initiated
+#Percentage of characteristic in study total for Counselor-initiated
 demo.summary1[1,1] <- demo(demographicsCI$Gender, "Female") 
 demo.summary1[2,1] <- demo(demographicsCI$Gender, "Male") 
 demo.summary1[3,1] <- demo(demographicsCI$Race, "African American") 
@@ -263,7 +263,7 @@ ggplot(logins.weekly.all, aes(x = Week)) +
 
 ## Number of Login Days in the First 4 Weeks
 
-Trends within treatment groups are apparent. Counselor-Initiated groups have similar login habits in the first 4 weeks while Self-Paced groups have more similar login habits regardless of Success. Logins are just starting to decrease in the unsuccessful Counselor-Initiated group in the fourth week which led us to believe there may be a reason to explore the first 8 weeks of the study. Another point to note is that consistent logins in the first 4 weeks didn't seem to be a predictor of successful weight loss for Self-Paced people.
+Trends within treatment groups are apparent. Counselor-initiated groups have similar login habits in the first 4 weeks while Self-paced groups have more similar login habits regardless of Success. Logins are just starting to decrease in the unsuccessful Counselor-initiated group in the fourth week which led us to believe there may be a reason to explore the first 8 weeks of the study. Another point to note is that consistent logins in the first 4 weeks didn't seem to be a predictor of successful weight loss for Self-paced people.
 
 ```{r echo=FALSE}
 #Create a data frame with average calories and number of logins per week for each ID number
@@ -317,9 +317,9 @@ ggplot(allWeeks, aes(x = factor(Week), fill = NumOfEntries)) +
 
 * When looking at the first 8 weeks, it is easier to see the trends among groups. The Counselor-initiated Success group still looks to be the most stable in terms of days logged in
 
-* The Self-Paced Success group began to level out after the 4th week whereas the unsuccessful Self-Paced group's logins continued to decrease
+* The Self-paced Success group began to level out after the 4th week whereas the unsuccessful Self-paced group's logins continued to decrease
 
-* The Counselor-Initiated unsuccessful group remained high in logins but there was more variability in the number of logins between weeks.
+* The Counselor-initiated unsuccessful group remained high in logins but there was more variability in the number of logins between weeks.
 
 ```{r echo=FALSE}
 #Create a data frame with average calories and number of logins per week for each ID number
@@ -420,10 +420,10 @@ cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2"
 ggplot(allWeeks, aes(x = factor(Week), fill = NumOfEntries)) +
   geom_bar(position = "fill") +
   facet_grid(.~ tx) +
-  #scale_fill_manual(values = cbbPalette, name = "Number of days\nLogged per Week") +
+  #scale_fill_manual(values = cbbPalette, name = "Number of days\nlogged per week") +
   #scale_color_colorblind(name = "Number of\nEntries")+
   labs(y = "Frequency", x = "Week") +
-  scale_fill_brewer(palette = "Spectral",name = "Number of days\nLogged per Week")
+  scale_fill_brewer(palette = "Spectral",name = "Number of days\nlogged per week")
 
 #theme(legend.position = "top", legend.direction = "horizontal") + guides(fill = guide_legend(nrow = 1), override.aes = list(size = 4))
 
@@ -432,7 +432,7 @@ ggplot(allWeeks, aes(x = factor(Week), fill = NumOfEntries)) +
 #Save as .tiff
 #ggsave("NumOfEntries.tiff", units="in", dpi=600, compression = 'lzw')
 
-#Save as .png
+# Save as .png
 # ggsave("NumOfEntries.png", width = 6, height = 3.5,units="in", dpi=600)
 ```
 
